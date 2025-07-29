@@ -73,6 +73,7 @@ h1, h2, h3 {
 .back-link {
   display: inline-block;
   text-decoration: underline;
+  color: white;
 }
 
 /* ===== Entry Layout ===== */

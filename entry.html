@@ -11,18 +11,18 @@
 <body>
   <!-- Header -->
   <header class="site-header">
-   <div class="header-content">
-        <a href="index.html" class="site-title">Bay Island Archives</a>
-        <nav class="nav-links">
-          <a href="about.html">About</a>
-          <a href="archives.html">Archives</a>
-          <a href="contact.html">Contact</a>
-        </nav>
-      </div>
+    <div class="header-content">
+      <a href="index.html" class="site-title">Bay Island Archives</a>
+      <nav class="nav-links">
+        <a href="about.html">About</a>
+        <a href="archives.html">Archives</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+    </div>
   </header>
 
   <!-- Main -->
-  <main class="site-main container">
+  <main class="site-main">
     <section class="entry-content" id="entry-detail">
       <!-- JS will inject content here -->
     </section>
@@ -35,9 +35,9 @@
         <p>Preserving stories, honoring history.</p>
         <h2>Bay Island Archives</h2>
         <div class="footer-links">
-          <a href="./about.html">About</a>
-          <a href="./archives.html">Archives</a>
-          <a href="./contact.html">Contact</a>
+          <a href="about.html">About</a>
+          <a href="archives.html">Archives</a>
+          <a href="contact.html">Contact</a>
         </div>
       </div>
       <div class="footer-center">
@@ -71,7 +71,7 @@
         const includes = data.includes;
 
         const title = fields.title || 'Untitled';
-        const date = fields.date ? new Date(fields.date).getFullYear() : null;
+        const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown Year';
         const location = fields.location || null;
         const description = fields.description?.content?.[0]?.content?.[0]?.value || null;
 
@@ -102,43 +102,118 @@
         }
 
         const metaLines = [
-          location ? `<p class="entry-meta"><strong>Location:</strong> ${location}</p>` : '',
-          date ? `<p class="entry-meta"><strong>Date:</strong> ${date}</p>` : '',
+          location ? `<p class="entry-meta">${location} <br> ${date}</p>` : '',
         ].join('');
 
         const descriptionBlock = description
           ? `<div class="entry-description">${description}</div>` : '';
 
+        // VIDEO EMBED
+        function toYouTubeEmbed(url) {
+          const match = url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([\w-]+)/);
+          return match ? `https://www.youtube.com/embed/${match[1]}` : url;
+        }
+
+        let videoEmbed = '';
+        if (fields.videoEmbedURL) {
+          const embedURL = toYouTubeEmbed(fields.videoEmbedURL);
+          videoEmbed = `
+    <div class="entry-media">
+      <h3>Video</h3>
+      <div class="video-wrapper">
+        <iframe src="${embedURL}" frameborder="0" allowfullscreen></iframe>
+      </div>
+    </div>
+  `;
+        }
+
+        // AUDIO / VIDEO MEDIA
+        let mediaBlock = '';
+        let mediaSection = '';
+        if (videoEmbed || mediaBlock) {
+          mediaSection = `
+    <section class="entry-media-section">
+      <div class="media-row">
+        <div class="media-left">
+          ${videoEmbed}
+          ${mediaBlock}
+        </div>
+        <div class="media-right">
+          <p>This media was included to supplement the archive record with audiovisual material.</p>
+        </div>
+      </div>
+    </section>
+  `;
+        }
+
+
+        // RELATED ARCHIVE RECORDS (only links by title)
+        let relatedLinks = '';
+        if (fields.relatedArchiveRecords?.length) {
+          const related = fields.relatedArchiveRecords
+            .map(link => includes.Entry.find(e => e.sys.id === link.sys.id))
+            .filter(Boolean);
+
+          if (related.length) {
+            relatedLinks = `
+  <section class="entry-section entry-related">
+    <h3>Related Archive Records</h3>
+    <div class="related-cards">
+      ${related.map(e => {
+              const title = e.fields.title || 'Untitled';
+              const image = e.fields.mainImage?.sys?.id ? assetsMap[e.fields.mainImage.sys.id] : 'https://placehold.co/400x300?text=No+Image';
+              return `
+          <a class="related-card" href="/entry.html?id=${e.sys.id}">
+            <img src="${image}" alt="${title}" />
+            <div class="related-card-text">
+              <h4>${title}</h4>
+            </div>
+          </a>`;
+            }).join('')}
+    </div>
+  </section>
+`;
+
+          }
+        }
         // Build HTML
         const container = document.getElementById('entry-detail');
         container.innerHTML = `
-        <a href="/archives.html" class="back-link">← To All Archives</a>
-        <h1 class="entry-title">${title}</h1>
-        <div class="entry-flex-container">
-        <div class="entry-text-block">
-          ${metaLines}
-          ${descriptionBlock}
-        </div>
-        <div class="entry-image-block">
-          <div class="main-image-wrapper">
-            <button class="arrow left">&larr;</button>
-            <img src="${imageUrls[0]}" id="mainImage" class="main-image" />
-            <button class="arrow right">&rarr;</button>
-          </div>
-          <div class="gallery-wrapper">
-            <button class="thumb-arrow thumb-left">&larr;</button>
-            <div class="thumbnail-viewport">
-              <div class="image-gallery" id="image-gallery">
-                ${imageUrls.map((url, i) => `
-                  <img class="thumb ${i === 0 ? 'selected' : ''}" src="${url}" data-index="${i}" />
-                `).join('')}
-              </div>
-            </div>
-            <button class="thumb-arrow thumb-right">&rarr;</button>
-          </div>
-        </div>
+  <a href="/archives.html" class="back-link">← To All Archives</a>
+
+<div class="entry-main">
+  <div class="entry-header">
+    <div class='entry-text-block'>
+      <h1 class="entry-title">${title}</h1>
+      ${metaLines}
+      ${descriptionBlock}
+    </div>
+    <div class="entry-gallery">
+      <div class="main-image-wrapper">
+        <button class="arrow left">&larr;</button>
+        <img src="${imageUrls[0]}" id="mainImage" class="main-image" />
+        <button class="arrow right">&rarr;</button>
       </div>
-      `;
+    </div> 
+  </div>
+  <div class="gallery-wrapper">
+    <button class="thumb-arrow thumb-left">&larr;</button>
+    <div class="thumbnail-viewport">
+      <div class="image-gallery" id="image-gallery">
+        ${imageUrls.map((url, i) => `
+          <img class="thumb ${i === 0 ? 'selected' : ''}" src="${url}" data-index="${i}" />
+        `).join('')}
+      </div>
+    </div>
+    <button class="thumb-arrow thumb-right">&rarr;</button>
+  </div>
+</div>
+
+${mediaSection}
+
+${relatedLinks}
+`;
+
 
         // Functionality
         let currentIndex = 0;
@@ -167,6 +242,7 @@
           const offset = thumbStartIndex * 105; // 100px width + 5px gap
           gallery.style.transform = `translateX(-${offset}px)`;
         };
+
 
         document.querySelector('.thumb-left').addEventListener('click', () => {
           if (thumbStartIndex > 0) {

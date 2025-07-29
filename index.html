@@ -60,9 +60,9 @@
         <p>Preserving stories, honoring history.</p>
         <h2>Bay Island Archives</h2>
         <div class="footer-links">
-          <a href="./about.html">About</a>
-          <a href="./archives.html">Archives</a>
-          <a href="./contact.html">Contact</a>
+          <a href="about.html">About</a>
+          <a href="archives.html">Archives</a>
+          <a href="contact.html">Contact</a>
         </div>
       </div>
       <div class="footer-center">
@@ -152,11 +152,11 @@
     });
   }
 
-  mapboxgl.accessToken = 'pk.eyJ1IjoiYmlhcmNoaXZlcyIsImEiOiJjbWRtZDRmMjIxa3JlMmpxMWIyM2ZleHVoIn0.qAlCMwvS56lvr7AbC2Iuug';
+  mapboxgl.accessToken = 'pk.eyJ1IjoiYXNoYWxhbWFsYWthIiwiYSI6ImNtZDR0MzN3ZzBqYWgyam4xdTM1MW4zamsifQ.Py54aN73n6ZB5U8vW1hscQ';
 
   const map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/biarchives/cmdop5iqf01vp01sa2ol5fds9',
+    style: 'mapbox://styles/ashalamalaka/cmdfk1stf015l01sahg78engu',
     center: [-86.57845621839104, 16.29814507230684],
     zoom: 9
   });
@@ -300,19 +300,20 @@
 
         const externalUrl = fields.externalUrl;
 
-        const card = document.createElement('div');
-        card.className = 'archive-card';
+        const cardLink = document.createElement('a');
+        cardLink.href = `entry.html?id=${item.sys.id}`;
+        cardLink.className = 'archive-card';
 
-        card.innerHTML = `
-      <img src="${imageUrl}" alt="${title}" />
-      <div class="card-text">
-        <h3>${title}</h3>
-        <p>${date} — ${location}</p>
-        ${externalUrl ? `<a href="${externalUrl}" target="_blank">View More</a>` : ''}
-      </div>
-    `;
+        cardLink.innerHTML = `
+  <img src="${imageUrl}" alt="${title}" />
+  <div class="card-text">
+    <h3>${title}</h3>
+    <p>${date} — ${location}</p>
+  </div>
+`;
 
-        container.appendChild(card);
+        container.appendChild(cardLink);
+
       });
 
       overlay.style.display = 'flex';

@@ -1,15 +1,12 @@
-/* entry.css (import styles.css first) */
 @import url('styles.css');
 
 /* ===== Reset & Base ===== */
 body {
-  background-color: #000;
+  background-color: #1e1e1e;
   color: white;
 }
 
-h1,
-h2,
-h3 {
+h1, h2, h3 {
   font-family: 'Odibee Sans', sans-serif;
   color: white;
   font-size: 30px;
@@ -19,13 +16,11 @@ h3 {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  height: auto;
   align-items: center;
-  min-height: 500px;
-  padding: 2rem 50px 3rem 50px;
-  /* top, right/left, bottom */
-  flex: 1;
-  border: none;
-  margin: auto;
+  max-width: 1200px;
+  margin: 30px auto;
+  padding: 2rem;
 }
 
 /* ===== Header & Navigation ===== */
@@ -55,128 +50,83 @@ h3 {
   box-shadow: 0 0 0 2px black inset;
 }
 
-/* ====== Typography ====== */
+/* ===== Typography ===== */
 .entry-title {
   font-size: 2rem;
+  color:#FFB800;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
 }
 
 .entry-meta {
-  font-size: 1rem;
+  font-size: 20px;
   margin-bottom: 0.5rem;
-  color: white;
+  font-family: 'Odibee Sans', sans-serif;
 }
 
 .entry-description {
-  font-size: 1rem;
+  font-size: 15px;
   margin-bottom: 1.5rem;
   line-height: 1.6;
 }
 
 .back-link {
   display: inline-block;
-  margin-top: 1.5rem;
   text-decoration: underline;
 }
 
-.back-link:hover {
-  text-decoration: underline;
-}
-
-/* ====== Entry Section ====== */
-.entry-flex-container {
+/* ===== Entry Layout ===== */
+.entry-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 2rem;
-  margin-top: 1.5rem;
+  flex-direction: row;
+  justify-content: center;
+  gap: 5rem;
+  margin: 2rem 0;
 }
 
 .entry-text-block {
-  flex: 1;
+  flex: 1 1 45%;
   min-width: 300px;
-  max-width: 500px;
+  max-width: auto;
 }
 
-.entry-image-block {
-  flex: 1;
-  min-width: 320px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.entry-gallery {
+  flex: 1 1 45%;
+  max-width: fit-content;
 }
 
-/* ====== Main Image Section ====== */
+/* ===== Main Image ===== */
 .main-image-wrapper {
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 10px;
+  align-items: center;
   height: 400px;
-  /* Fixed height to prevent shifting */
-  position: relative;
-  background-color: #f0f0f0;
-  /* Optional: helps visually anchor size */
+  max-width: fit-content;
   padding: 10px;
-  box-sizing: border-box;
+  background-color: #f0f0f0;
   border-radius: 5px;
 }
 
 .main-image {
-  max-height: 100%;
-  max-width: calc(100% - 100px);
-  /* Leaves room for arrows */
-  object-fit: contain;
-  display: block;
-  margin: auto;
+  height: 100%;
+  width: auto;
+  object-fit: fill;
 }
 
-.arrow {
-  background: none;
-  border: none;
-  font-size: 2rem;
-  cursor: pointer;
-  z-index: 1;
-  color: black;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.arrow:hover {
-  background-color: black;
-  border-radius: 5px;
-  color: white;
-}
-
-.arrow.left {
-  left: 0.5rem;
-}
-
-.arrow.right {
-  right: 0.5rem;
-}
-
-/* ====== Gallery Section ====== */
+/* ===== Gallery ===== */
 .gallery-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
   margin-top: 1rem;
+  max-width: 800px;
   gap: 0.5rem;
-}
-
-.gallery-section {
-  margin-top: 2rem;
-  overflow-x: auto;
-  padding-bottom: 0.5rem;
 }
 
 .thumbnail-viewport {
   overflow: hidden;
-  width: 420px;
+  width: auto;
+  max-width: 100%;
 }
 
 .image-gallery {
@@ -194,19 +144,16 @@ h3 {
   border-radius: 4px;
 }
 
-/* ====== Utility ====== */
 .thumb {
-  width: 100px;
-  height: auto;
+  width: 80px;
+  height: 80px;
   background-color: #ccc;
   object-fit: cover;
-  display: block;
-  border: 2px solid transparent;
-  transition: border 0.2s ease;
   border-radius: 5px;
   cursor: pointer;
   flex-shrink: 0;
-  /* Prevents shrinking */
+  border: 2px solid transparent;
+  transition: border 0.2s ease;
 }
 
 .thumb.selected {
@@ -220,6 +167,115 @@ h3 {
   border-radius: 5px;
   cursor: pointer;
   color: black;
+}
+
+/* ===== Arrows ===== */
+.arrow {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  color: black;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.arrow:hover {
+  background-color: black;
+  border-radius: 5px;
+  color: white;
+}
+
+.arrow.left {
+  left: 0.5rem;
+}
+
+.arrow.right {
+  right: 0.5rem;
+}
+
+/* ===== Media Blocks ===== */
+.entry-media-section {
+  margin-top: 2rem;
+}
+.media-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+}
+
+.media-left {
+  flex: 1 1 50%;
+}
+
+.video-wrapper {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+}
+
+.video-wrapper iframe {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+}
+
+.media-right{
+  font-size: 14px;
+  flex: 1 1;
+}
+
+/* ===== Related Cards ===== */
+.entry-related {
+  margin-top: 2rem;
+}
+
+.entry-related h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.entry-related .related-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.related-card {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+  text-decoration: none;
+}
+
+.related-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.related-card img {
+  width: 100%;
+  height: auto;
+}
+
+.related-card-text {
+  padding: 0.75rem;
+}
+
+.related-card-text h4 {
+  margin: 0;
+  font-size: 1.1rem;
 }
 
 /* ===== Footer ===== */
@@ -238,5 +294,49 @@ h3 {
   text-decoration: none;
 }
 
-/* ====== Responsive (add here if needed) ====== */
-/* @media (max-width: ...) { ... } */
+@media (max-width: 900px) {
+  .site-main {
+    padding: 2rem;
+  }
+
+  .entry-header {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .entry-text-block, .entry-gallery {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .thumbnail-viewport {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .site-main {
+    padding: 1rem;
+    margin: 0 auto;
+  }
+  .site-header a {
+    font-size: 18px;
+  }
+
+  .entry-title {
+    font-size: 1.5rem;
+  }
+
+  .entry-meta {
+    font-size: 16px;
+  }
+
+  .entry-description {
+    font-size: 14px;
+  }
+
+  .thumb {
+    width: 60px;
+    height: 60px;
+  }
+}

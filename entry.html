@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BI Stories | Archive Entry</title>
+  <link rel="stylesheet" href="/css/entry.css" />
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-content">
+      <a href="index.html" class="site-title">Bay Island Archives</a>
+      <nav class="nav-links">
+        <a href="/about.html">About</a>
+        <a href="/archives.html" class="active">Archives</a>
+        <a href="/contact.html">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="site-main container">
+    <section class="entry-content" id="entry-detail">
+      <!-- JS will inject content here -->
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-content">
+      <div class="footer-left">
+        <p>Preserving stories, honoring history.</p>
+        <h2>Bay Island Archives</h2>
+        <div class="footer-links">
+          <a href="./about.html">About</a>
+          <a href="./archives.html">Archives</a>
+          <a href="./contact.html">Contact</a>
+        </div>
+      </div>
+      <div class="footer-center">
+        <form class="newsletter-form">
+          <label for="email">Stay in touch.</label>
+          <div class="newsletter-inputs">
+            <input type="email" id="email" placeholder="Enter your email" required />
+            <button type="submit">Subscribe</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script -->
+  <script>
+    window.addEventListener('load', () => {
+      window.scrollTo(0, 0);
+    });
+
+    const spaceId = 'aadxqh26r36r';
+    const accessToken = 'S58GTgLmfuBlx2MwLYtC5WSrPoa4b9JRzqCD3xCQbFE';
+    const entryId = new URLSearchParams(window.location.search).get('id');
+    const url = `https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&sys.id=${entryId}&include=2`;
+
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        const entry = data.items[0];
+        const fields = entry.fields;
+        const includes = data.includes;
+
+        const title = fields.title || 'Untitled';
+        const date = fields.date ? new Date(fields.date).getFullYear() : null;
+        const location = fields.location || null;
+        const description = fields.description?.content?.[0]?.content?.[0]?.value || null;
+
+        // Collect image IDs
+        const allImageIds = [];
+        if (fields.mainImage?.sys?.id) {
+          allImageIds.push(fields.mainImage.sys.id);
+        }
+        if (fields.additionalImages?.length) {
+          fields.additionalImages.forEach(img => {
+            if (img.sys?.id) allImageIds.push(img.sys.id);
+          });
+        }
+
+        const assetsMap = {};
+        includes?.Asset?.forEach(asset => {
+          if (asset.sys.id && asset.fields?.file?.url) {
+            assetsMap[asset.sys.id] = `https:${asset.fields.file.url}`;
+          }
+        });
+
+        const imageUrls = allImageIds
+          .map(id => assetsMap[id])
+          .filter(Boolean);
+
+        if (imageUrls.length === 0) {
+          imageUrls.push('https://placehold.co/600x400?text=No+Image');
+        }
+
+        const metaLines = [
+          location ? `<p class="entry-meta"><strong>Location:</strong> ${location}</p>` : '',
+          date ? `<p class="entry-meta"><strong>Date:</strong> ${date}</p>` : '',
+        ].join('');
+
+        const descriptionBlock = description
+          ? `<div class="entry-description">${description}</div>` : '';
+
+        // Build HTML
+        const container = document.getElementById('entry-detail');
+        container.innerHTML = `
+        <a href="/archives.html" class="back-link">← To All Archives</a>
+        <h1 class="entry-title">${title}</h1>
+        <div class="entry-flex-container">
+        <div class="entry-text-block">
+          ${metaLines}
+          ${descriptionBlock}
+        </div>
+        <div class="entry-image-block">
+          <div class="main-image-wrapper">
+            <button class="arrow left">&larr;</button>
+            <img src="${imageUrls[0]}" id="mainImage" class="main-image" />
+            <button class="arrow right">&rarr;</button>
+          </div>
+          <div class="gallery-wrapper">
+            <button class="thumb-arrow thumb-left">&larr;</button>
+            <div class="thumbnail-viewport">
+              <div class="image-gallery" id="image-gallery">
+                ${imageUrls.map((url, i) => `
+                  <img class="thumb ${i === 0 ? 'selected' : ''}" src="${url}" data-index="${i}" />
+                `).join('')}
+              </div>
+            </div>
+            <button class="thumb-arrow thumb-right">&rarr;</button>
+          </div>
+        </div>
+      </div>
+      `;
+
+        // Functionality
+        let currentIndex = 0;
+        const mainImage = document.getElementById('mainImage');
+        const thumbs = document.querySelectorAll('.image-gallery img');
+
+        const updateImage = (index) => {
+          currentIndex = (index + imageUrls.length) % imageUrls.length;
+          mainImage.src = imageUrls[currentIndex];
+          thumbs.forEach(el => el.classList.remove('selected'));
+          thumbs[currentIndex].classList.add('selected');
+        };
+
+        thumbs.forEach((thumb, index) => {
+          thumb.addEventListener('click', () => updateImage(index));
+        });
+
+        document.querySelector('.arrow.left').addEventListener('click', () => updateImage(currentIndex - 1));
+        document.querySelector('.arrow.right').addEventListener('click', () => updateImage(currentIndex + 1));
+
+        let thumbStartIndex = 0;
+        const thumbsPerPage = 4;
+
+        const updateThumbnailView = () => {
+          const gallery = document.getElementById('image-gallery');
+          const offset = thumbStartIndex * 105; // 100px width + 5px gap
+          gallery.style.transform = `translateX(-${offset}px)`;
+        };
+
+        document.querySelector('.thumb-left').addEventListener('click', () => {
+          if (thumbStartIndex > 0) {
+            thumbStartIndex--;
+            updateThumbnailView();
+          }
+        });
+
+        document.querySelector('.thumb-right').addEventListener('click', () => {
+          if (thumbStartIndex + thumbsPerPage < imageUrls.length) {
+            thumbStartIndex++;
+            updateThumbnailView();
+          }
+        });
+
+        updateThumbnailView(); // initialize
+
+      })
+      .catch(err => console.error('Failed to load entry:', err));
+  </script>
+
+
+</body>
+
+</html>

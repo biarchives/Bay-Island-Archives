@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BI Stories</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+
+  <!-- Mapbox GL JS CDN -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+
+</head>
+
+<body>
+  <div class="page-wrapper">
+    <header class="site-header">
+      <div class="header-content">
+        <a href="index.html" class="site-title">Bay Island Archives</a>
+        <nav class="nav-links">
+          <a href="/about.html">About</a>
+          <a href="/archives.html">Archives</a>
+          <a href="/contact.html">Contact</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="site-main">
+      <div class="main-content">
+        <div id="sidebar" class="hidden">
+          <button id="back-button">← Back to Map</button>
+          <h2 id="sidebar-title"></h2>
+          <h3 id="sidebar-subtitle"></h3>
+          <p id="sidebar-description"></p>
+          <h3>Explore Archives</h3>
+          <div id="archive-buttons"> </div>
+        </div>
+        <!-- Archive Overlay -->
+        <div id="archive-overlay" class="overlay hidden">
+          <button id="close-overlay">&times;</button>
+          <div class="overlay-content">
+            <div id="archive-previews"></div>
+            <!-- JS will populate this with archive previews -->
+          </div>
+        </div>
+
+        <div id="map" class="map-container"></div>
+      </div>
+
+
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-content">
+      <div class="footer-left">
+        <p>Preserving stories, honoring history.</p>
+        <h2>Bay Island Archives</h2>
+        <div class="footer-links">
+          <a href="./about.html">About</a>
+          <a href="./archives.html">Archives</a>
+          <a href="./contact.html">Contact</a>
+        </div>
+      </div>
+      <div class="footer-center">
+        <form class="newsletter-form">
+          <label for="email">Stay in touch.</label>
+          <div class="newsletter-inputs">
+            <input type="email" id="email" placeholder="Enter your email" required />
+            <button type="submit">Subscribe</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </footer>
+</body>
+
+<script>
+  const spaceId = 'aadxqh26r36r';
+  const accessToken = 'S58GTgLmfuBlx2MwLYtC5WSrPoa4b9JRzqCD3xCQbFE';
+  const contentTypeId = 'archivePage';
+
+  let islandCounts = {};
+  let locationCounts = {};
+  let lastSelectedIsland = null;
+  let allEntries = [];
+
+  async function fetchEntries() {
+    const res = await fetch(`https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&content_type=${contentTypeId}&include=1`);
+    const data = await res.json();
+    // Store assets for lookup
+    window.assets = data.includes?.Asset || [];
+    return data.items;
+  }
+
+  function groupEntries(entries) {
+    const islandCounts = {};
+    const locationCounts = {};
+
+    entries.forEach(entry => {
+      const island = entry.fields.island?.toLowerCase().trim();
+      const location = entry.fields.location?.toLowerCase().trim();
+      const type = entry.fields.fileType?.toLowerCase();
+
+      if (!islandCounts[island]) islandCounts[island] = { total: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+      if (!locationCounts[location]) locationCounts[location] = { total: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+
+      islandCounts[island].total++;
+      locationCounts[location].total++;
+
+      if (type && islandCounts[island][type] !== undefined) islandCounts[island][type]++;
+      if (type && locationCounts[location][type] !== undefined) locationCounts[location][type]++;
+    });
+
+    return { islandCounts, locationCounts };
+  }
+
+  function renderPreviewItems(filterFn) {
+    const previewContainer = document.getElementById('archive-previews');
+    previewContainer.innerHTML = ''; // Clear previous previews
+
+    const filtered = allEntries.filter(filterFn);
+
+    if (filtered.length === 0) {
+      previewContainer.innerHTML = '<p>No entries found.</p>';
+      return;
+    }
+
+    filtered.slice(0, 6).forEach(entry => {
+      const title = entry.fields.title || 'Untitled';
+      const id = entry.sys.id;
+      let img = 'https://via.placeholder.com/300x200';
+      if (entry.fields.thumbnail && entry.fields.thumbnail.sys) {
+        const imageId = entry.fields.thumbnail.sys.id;
+        const asset = window.assets.find(a => a.sys.id === imageId);
+        if (asset && asset.fields?.file?.url) {
+          img = `https:${asset.fields.file.url}`;
+        }
+      }
+
+      const previewEl = document.createElement('a');
+      previewEl.href = `entry.html?id=${id}`;
+      previewEl.className = 'preview-item';
+      previewEl.innerHTML = `
+        <div class="thumb" style="background-image: url('${img}')"></div>
+        <p>${title}</p>
+      `;
+      previewContainer.appendChild(previewEl);
+    });
+  }
+
+  mapboxgl.accessToken = 'pk.eyJ1IjoiYXNoYWxhbWFsYWthIiwiYSI6ImNtZDR0MzN3ZzBqYWgyam4xdTM1MW4zamsifQ.Py54aN73n6ZB5U8vW1hscQ';
+
+  const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/ashalamalaka/cmdfk1stf015l01sahg78engu',
+    center: [-86.57845621839104, 16.29814507230684],
+    zoom: 9
+  });
+
+  map.addControl(new mapboxgl.NavigationControl());
+  map.scrollZoom.disable();
+
+  map.on('load', async () => {
+    allEntries = await fetchEntries();
+    const grouped = groupEntries(allEntries);
+    islandCounts = grouped.islandCounts;
+    locationCounts = grouped.locationCounts;
+
+    const hoverPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
+
+    map.on('mouseenter', 'bay-island-islands-fill', () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', 'bay-island-islands-fill', () => map.getCanvas().style.cursor = '');
+    map.on('mouseenter', 'bay-island-geolocations', (e) => {
+      const coordinates = e.features[0].geometry.coordinates.slice();
+      const locationName = e.features[0].properties.location || "Unnamed Location";
+      hoverPopup.setLngLat(coordinates).setHTML(`<strong>${locationName}</strong>`).addTo(map);
+    });
+    map.on('mouseleave', 'bay-island-geolocations', () => hoverPopup.remove());
+
+    map.on('click', 'bay-island-islands-fill', (e) => {
+      const props = e.features[0].properties;
+      const island = props.island?.toLowerCase().trim();
+      const stats = islandCounts[island] || { total: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+
+      if (lastSelectedIsland === props.island) return;
+      lastSelectedIsland = props.island;
+
+      document.getElementById('sidebar-title').textContent = props.island || "Unknown Island";
+      document.getElementById('sidebar-subtitle').textContent = "";
+      document.getElementById('sidebar-description').textContent = props.description || "No description available.";
+
+      document.getElementById('archive-buttons').innerHTML = `
+        <button id="btn-all">View All (${stats.total})</button>
+        <button id="btn-photos">Photos (${stats.photos})</button>
+        <button id="btn-videos">Videos (${stats.videos})</button>
+        <button id="btn-audio">Audio (${stats.audio})</button>
+        <button id="btn-text">Text (${stats.text})</button>
+      `;
+
+      document.getElementById('sidebar').classList.remove('hidden');
+
+      // Attach click listeners
+      document.getElementById('btn-all').addEventListener('click', () => {
+        const filtered = allEntries.filter(entry => entry.fields.island?.toLowerCase().trim() === island);
+        showOverlayForIsland(filtered);
+      });
+
+      document.getElementById('btn-photos').addEventListener('click', () => {
+        const filtered = allEntries.filter(entry =>
+          entry.fields.island?.toLowerCase().trim() === island &&
+          entry.fields.fileType?.toLowerCase() === 'photos'
+        );
+        showOverlayForIsland(filtered);
+      });
+
+      document.getElementById('btn-videos').addEventListener('click', () => {
+        const filtered = allEntries.filter(entry =>
+          entry.fields.island?.toLowerCase().trim() === island &&
+          entry.fields.fileType?.toLowerCase() === 'videos'
+        );
+        showOverlayForIsland(filtered);
+      });
+
+      document.getElementById('btn-audio').addEventListener('click', () => {
+        const filtered = allEntries.filter(entry =>
+          entry.fields.island?.toLowerCase().trim() === island &&
+          entry.fields.fileType?.toLowerCase() === 'audio'
+        );
+        showOverlayForIsland(filtered);
+      });
+
+      document.getElementById('btn-text').addEventListener('click', () => {
+        const filtered = allEntries.filter(entry =>
+          entry.fields.island?.toLowerCase().trim() === island &&
+          entry.fields.fileType?.toLowerCase() === 'text'
+        );
+        showOverlayForIsland(filtered);
+      });
+
+    });
+
+    map.on('click', 'bay-island-geolocations', (e) => {
+      const props = e.features[0].properties;
+      const location = props.location?.toLowerCase().trim();
+      const stats = locationCounts[location] || { total: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+
+      document.getElementById('sidebar-title').textContent = props.location || "Untitled Location";
+      document.getElementById('sidebar-subtitle').textContent = props.island || "";
+      document.getElementById('sidebar-description').textContent = props.description || "No description available.";
+
+      document.getElementById('archive-buttons').innerHTML = `
+        <button>View All (${stats.total})</button>
+        <button>Photos (${stats.photos})</button>
+        <button>Videos (${stats.videos})</button>
+        <button>Audio (${stats.audio})</button>
+        <button>Text (${stats.text})</button>
+      `;
+
+      document.getElementById('sidebar').classList.remove('hidden');
+    });
+
+    document.getElementById('back-button').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.add('hidden');
+      document.getElementById('archive-previews').innerHTML = '';
+      lastSelectedIsland = null;
+    });
+
+    // Get references
+    const overlay = document.getElementById("archive-overlay");
+    const closeBtn = document.getElementById("close-overlay");
+    const overlayContent = document.querySelector(".overlay-content");
+
+    // Example: show overlay and inject archive cards
+    function showOverlayForIsland(entries) {
+      const overlay = document.getElementById('archive-overlay');
+      const container = document.getElementById('archive-previews');
+
+      container.innerHTML = ''; // Clear previous
+
+      entries.forEach(item => {
+        const fields = item.fields;
+
+        const title = fields.title || 'Untitled';
+        const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown year';
+        const location = fields.location || 'Unknown location';
+
+        // Default placeholder
+        let imageUrl = 'https://via.placeholder.com/300x200';
+        if (fields.mainImage && fields.mainImage.sys) {
+          const imageId = fields.mainImage.sys.id;
+          const asset = window.assets.find(a => a.sys.id === imageId);
+          if (asset && asset.fields?.file?.url) {
+            imageUrl = `https:${asset.fields.file.url}`;
+          }
+        }
+
+        const externalUrl = fields.externalUrl;
+
+        const card = document.createElement('div');
+        card.className = 'archive-card';
+
+        card.innerHTML = `
+      <img src="${imageUrl}" alt="${title}" />
+      <div class="card-text">
+        <h3>${title}</h3>
+        <p>${date} — ${location}</p>
+        ${externalUrl ? `<a href="${externalUrl}" target="_blank">View More</a>` : ''}
+      </div>
+    `;
+
+        container.appendChild(card);
+      });
+
+      overlay.style.display = 'flex';
+
+      overlay.classList.remove("hidden");
+    }
+
+
+
+  });
+</script>
+
+</html>

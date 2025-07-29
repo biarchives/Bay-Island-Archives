@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BI Stories | Archives</title>
+  <link rel="stylesheet" href="/css/archives.css" />
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-content">
+      <a href="index.html" class="site-title">Bay Island Archives</a>
+      <nav class="nav-links">
+        <a href="/about.html">About</a>
+        <a href="/archives.html" class="active">Archives</a>
+        <a href="/contact.html">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="site-main">
+    <h2>All Archives</h2>
+    <p class="description">
+      Browse all archives available for the Bay Islands. Click the island below if you want to
+      view a specific island’s records, and click on the side for more advanced sorting options.
+    </p>
+    <div class="search-container">
+      <input type="text" id="search-input" class="search-bar" placeholder="Search archives by title..." />
+      <!-- Sorting Controls -->
+      <div class="sort-controls">
+        <select id="sort-date">
+          <option value="">Sort by Date</option>
+          <option value="asc">Oldest First</option>
+          <option value="desc">Newest First</option>
+        </select>
+        <select id="sort-name">
+          <option value="">Sort by Name</option>
+          <option value="asc">A–Z</option>
+          <option value="desc">Z–A</option>
+        </select>
+      </div>
+      <!-- Filters Sidebar -->
+      <aside class="filters">
+        <div class="filter-section">
+          <h2>Islands</h2>
+          <div class="filter-tags">
+            <button data-filter-type="location" data-value="Roatán">Roatán</button>
+            <button data-filter-type="location" data-value="Morat">Morat</button>
+            <button data-filter-type="location" data-value="Guanaja">Guanaja</button>
+            <button data-filter-type="location" data-value="Barbareta">Barbareta</button>
+            <button data-filter-type="location" data-value="Utila">Utila</button>
+            <button data-filter-type="location" data-value="Cochinos Pequeño">Cochinos Pequeño</button>
+            <button data-filter-type="location" data-value="Cochinos Grande">Cochinos Grande</button>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <h2>Item Type</h2>
+          <div class="filter-tags">
+            <div class="filter-tags">
+              <button data-filter-type="type" data-value="image">🖼 Image</button>
+              <button data-filter-type="type" data-value="text">🅣 Text</button>
+              <button data-filter-type="type" data-value="video">🎥 Video</button>
+              <button data-filter-type="type" data-value="audio">🔊 Audio</button>
+            </div>
+          </div>
+        </div>
+        <button onclick="resetFilters()">Reset Filters</button>
+
+      </aside>
+
+      <!-- Archive Grid -->
+      <section class="archive-grid">
+
+      </section>
+    </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-content">
+      <div class="footer-left">
+        <p>Preserving stories, honoring history.</p>
+        <h2>Bay Island Archives</h2>
+        <div class="footer-links">
+          <a href="/about.html">About</a>
+          <a href="/archives.html">Archives</a>
+          <a href="/contact.html">Contact</a>
+        </div>
+      </div>
+      <div class="footer-center">
+        <form class="newsletter-form">
+          <label for="email">Stay in touch.</label>
+          <div class="newsletter-inputs">
+            <input type="email" id="email" placeholder="Enter your email" required />
+            <button type="submit">Subscribe</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </footer>
+</body>
+
+<script>
+  const spaceId = 'aadxqh26r36r';
+  const accessToken = 'S58GTgLmfuBlx2MwLYtC5WSrPoa4b9JRzqCD3xCQbFE';
+  const contentTypeId = 'archivePage';
+
+  const url = `https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&content_type=${contentTypeId}&include=1`;
+
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      const items = data.items;
+      const assets = data.includes.Asset;
+      const grid = document.querySelector('.archive-grid');
+
+      items.forEach(item => {
+        const fields = item.fields;
+
+        const title = fields.title || 'Untitled';
+        const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown year';
+        const location = fields.location || 'Unknown location';
+
+        // Get image URL from linked asset
+        let imageUrl = 'https://via.placeholder.com/300x200';
+        if (fields.mainImage && fields.mainImage.sys) {
+          const imageId = fields.mainImage.sys.id;
+          const asset = assets.find(a => a.sys.id === imageId);
+          if (asset) {
+            imageUrl = `https:${asset.fields.file.url}`;
+          }
+        }
+        const externalUrl = fields.externalUrl;
+
+        // Define activeFilters globally
+        const activeFilters = {
+          location: new Set(),
+          type: new Set()
+        };
+
+        // Apply filters based on current active sets
+        function applyFilters() {
+          const items = document.querySelectorAll('.archive-item');
+          items.forEach(item => {
+            const matchesLocation =
+              activeFilters.location.size === 0 || activeFilters.location.has(item.dataset.location?.toLowerCase());
+            const matchesType =
+              activeFilters.type.size === 0 || activeFilters.type.has(item.dataset.type?.toLowerCase());
+            item.style.display = (matchesLocation && matchesType) ? 'block' : 'none';
+          });
+        }
+
+        // Add toggle behavior to filter buttons
+        document.querySelectorAll('.filter-tags button').forEach(button => {
+          button.addEventListener('click', () => {
+            const type = button.dataset.filterType;
+            const value = button.dataset.value.toLowerCase();
+            if (!activeFilters[type]) return;
+            // Toggle filter on/off
+            if (activeFilters[type].has(value)) {
+              activeFilters[type].delete(value);
+              button.classList.remove('active-filter');
+            } else {
+              activeFilters[type].add(value);
+              button.classList.add('active-filter');
+            }
+            applyFilters();
+          });
+        });
+
+        // Reset button
+        function resetFilters() {
+          Object.keys(activeFilters).forEach(type => activeFilters[type].clear());
+          document.querySelectorAll('.archive-item').forEach(item => {
+            item.style.display = 'block';
+          });
+          document.querySelectorAll('.filter-tags button').forEach(button => {
+            button.classList.remove('active-filter');
+          });
+        }
+        let linkTarget = '';
+        let linkHref = '';
+
+        if (externalUrl) {
+          linkHref = externalUrl;
+          linkTarget = '_blank';
+        } else {
+          linkHref = `/entry.html?id=${item.sys.id}`;
+          linkTarget = '_self';
+        }
+
+        const div = document.createElement('div');
+        div.className = 'archive-item';
+        div.setAttribute('data-title', title.toLowerCase());
+        div.setAttribute('data-date', date);
+        div.setAttribute('data-location', fields.island || 'unknown');
+        div.setAttribute('data-type', fields.fileType || 'unknown');
+
+
+        div.innerHTML = `
+  <a href="${linkHref}" target="${linkTarget}">
+    <img src="${imageUrl}" alt="${title}">
+    <div class="item-text">
+      <strong>${title}</strong><br/>
+      ${location}<br/>
+      ${date}
+    </div>
+  </a>
+`;
+        function sortItems(by, direction) {
+          const grid = document.querySelector('.archive-grid');
+          const items = Array.from(grid.children);
+
+          items.sort((a, b) => {
+            const valA = a.dataset[by];
+            const valB = b.dataset[by];
+
+            if (by === 'date') {
+              return direction === 'asc' ? valA - valB : valB - valA;
+            } else {
+              return direction === 'asc'
+                ? valA.localeCompare(valB)
+                : valB.localeCompare(valA);
+            }
+          });
+
+          // Re-append sorted items
+          items.forEach(item => grid.appendChild(item));
+        }
+
+        document.getElementById('sort-date').addEventListener('change', e => {
+          if (e.target.value) sortItems('date', e.target.value);
+        });
+        document.getElementById('sort-name').addEventListener('change', e => {
+          if (e.target.value) sortItems('title', e.target.value);
+        });
+
+        document.querySelectorAll('.filter-tags button').forEach(button => {
+          button.addEventListener('click', () => {
+
+          });
+        });
+
+        grid.appendChild(div);
+
+      });
+    })
+    .catch(error => {
+      console.error('Contentful error:', error);
+    });
+
+
+  // After all items are appended to the grid
+  const searchInput = document.getElementById('search-input');
+
+  function performSearch() {
+    const query = searchInput.value.trim().toLowerCase();
+    const items = document.querySelectorAll('.archive-item');
+    items.forEach(item => {
+      const title = item.dataset.title || '';
+      item.style.display = title.includes(query) ? 'block' : 'none';
+    });
+  }
+
+  searchInput.addEventListener('input', performSearch);
+  function resetFilters() {
+    document.querySelectorAll('.archive-item').forEach(item => {
+      item.style.display = 'block';
+    });
+  }
+
+</script>
+</body>
+
+</html>

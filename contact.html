@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact Us</title>
+  <link rel="stylesheet" href="/css/contact.css" />
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-content">
+      <a href="index.html" class="site-title">Bay Island Archives</a>
+      <nav class="nav-links">
+        <a href="/about.html">About</a>
+        <a href="/archives.html">Archives</a>
+        <a href="/contact.html" class="active">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="site-main">
+    <div class="contact-wrapper">
+      <section class="intro-text">
+        <h2>Get in Touch</h2>
+        <p>
+          Please feel free to reach out to us — we're always open to hearing from you. If you have historical materials,
+          photographs, or records related to the Bay Islands, we're always accepting new submissions.
+        </p>
+      </section>
+
+      <div class="form-panel">
+        <div class="tab-buttons">
+          <button class="tab-button active" data-tab="contact">Contact Us</button>
+          <button class="tab-button" data-tab="submit">Submit a Record</button>
+        </div>
+
+        <div id="contact" class="tab-panel active">
+          <form>
+            <label for="name">Name</label>
+            <input type="text" id="name" />
+
+            <label for="email">Email</label>
+            <input type="email" id="email" />
+
+            <label for="message">Message</label>
+            <textarea id="message"></textarea>
+
+            <button type="submit">Send</button>
+          </form>
+        </div>
+
+        <div id="submit" class="tab-panel">
+          <form>
+            <label for="submit-name">Name</label>
+            <input type="text" id="submit-name" />
+
+            <label for="submit-email">Email</label>
+            <input type="email" id="submit-email" />
+
+            <label for="file-type">File Type</label>
+            <select id="file-type">
+              <option>Image</option>
+              <option>Document</option>
+              <option>Audio</option>
+              <option>Video</option>
+            </select>
+
+            <label for="upload">Upload File</label>
+            <input type="file" id="upload" />
+
+            <label for="record-name">Record Name</label>
+            <input type="text" id="record-name" />
+
+            <label for="date">Date</label>
+            <input type="date" id="date" />
+
+            <label for="location">Location</label>
+            <input type="text" id="location" />
+
+            <label for="description">Description</label>
+            <textarea id="description"></textarea>
+
+            <button type="submit">Submit</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-content">
+      <div class="footer-left">
+        <p>Preserving stories, honoring history.</p>
+        <h2>Bay Island Archives</h2>
+        <div class="footer-links">
+          <a href="/about.html">About</a>
+          <a href="/archives.html">Archives</a>
+          <a href="/contact.html">Contact</a>
+        </div>
+      </div>
+      <div class="footer-center">
+        <form class="newsletter-form">
+          <label for="email">Stay in touch.</label>
+          <div class="newsletter-inputs">
+            <input type="email" id="email" placeholder="Enter your email" required />
+            <button type="submit">Subscribe</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </footer>
+</body>
+
+<script>
+  // Existing tab logic for .tab and .panel
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.panel');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      panels.forEach(p => p.classList.remove('active'));
+
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Add tab logic for .tab-button and .tab-panel
+  const tabButtons = document.querySelectorAll('.tab-button');
+  const tabPanels = document.querySelectorAll('.tab-panel');
+
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      tabButtons.forEach(b => b.classList.remove('active'));
+      tabPanels.forEach(p => p.classList.remove('active'));
+
+      button.classList.add('active');
+      document.getElementById(button.dataset.tab).classList.add('active');
+    });
+  });
+</script>
+</body>
+
+</html>

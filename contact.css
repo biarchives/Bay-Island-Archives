@@ -1,0 +1,161 @@
+/* contact.css */
+@import url('/css/styles.css');
+
+/* Main */
+.site-main {
+  min-height: 500px;
+  padding: 2rem;
+  height: auto;
+}
+
+/* Intro */
+.intro-text {
+  margin-bottom: 2rem;
+  max-width: 500px;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  flex: 1 1 300px;
+}
+
+/* Headings */
+h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: black;
+}
+
+/* Contact Layout */
+.contact-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1000px;
+  margin: 0 auto;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+/* Form Panel */
+.form-panel {
+  flex: 1 1 400px;
+  background-color: black;
+  padding: 2rem;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
+/* Tabs */
+.tab-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+}
+
+.tab-button {
+  padding: .75rem 1.5rem;
+  margin-right: 0.5rem;
+  border: 2px black solid;
+  background-color: white;
+  color: black;
+  cursor: pointer;
+  border-radius: 25px;
+  font-weight: 600;
+  font-family: 'PT Mono', monospace;
+  box-shadow: 0 0 0 2px white inset;
+}
+
+.tab-button:hover {
+  background-color: #1A5A8C;
+  color: white;
+  box-shadow: 0 0 0 2px white inset;
+}
+
+.tab-button.active {
+  background-color: #000;
+  color: #fff;
+  box-shadow: 0 0 0 2px white inset;
+  border: none;
+}
+
+.tab-panel {
+  display: none;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 1.5rem;
+  background-color: #fafafa;
+  margin-top: 1rem;
+}
+
+.tab-panel.active {
+  display: block;
+  padding: 1.5rem;
+}
+
+/* Forms */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-right: 20px;
+  max-width: 600px;
+}
+
+label {
+  font-weight: 600;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="file"],
+textarea,
+select {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  width: 100%;
+  max-width: 500px;
+}
+
+textarea {
+  height: 120px;
+  resize: vertical;
+}
+
+form button[type="submit"] {
+  padding: .5rem 2rem;
+  border: none;
+  background-color: #1a5a8c;
+  color: white;
+  cursor: pointer;
+  border-radius: 25px;
+  font-weight: 600;
+  font-family: 'PT Mono', monospace;
+}
+
+form button[type="submit"]:hover {
+  background-color: white;
+  color: #1a5a8c;
+  box-shadow: 0 0 0 2px #1a5a8c inset;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .footer-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .site-main {
+    padding: 1rem;
+  }
+
+  .contact-wrapper {
+    flex-direction: column;
+    padding: 1rem;
+  }
+
+  .form-panel {
+    padding: 1rem;
+  }
+}

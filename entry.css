@@ -1,0 +1,242 @@
+/* entry.css (import styles.css first) */
+@import url('/css/styles.css');
+
+/* ===== Reset & Base ===== */
+body {
+  background-color: #000;
+  color: white;
+}
+
+h1,
+h2,
+h3 {
+  font-family: 'Odibee Sans', sans-serif;
+  color: white;
+  font-size: 30px;
+}
+
+.site-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 500px;
+  padding: 2rem 50px 3rem 50px;
+  /* top, right/left, bottom */
+  flex: 1;
+  border: none;
+  margin: auto;
+}
+
+/* ===== Header & Navigation ===== */
+.site-header a {
+  font-family: 'Odibee Sans', sans-serif;
+  text-decoration: none;
+  color: white;
+}
+
+.header-content {
+  border-bottom: 3px solid white;
+}
+
+.nav-links a {
+  border: 3px solid white;
+}
+
+.nav-links a:hover {
+  background-color: #FFB800;
+  color: #000;
+  box-shadow: 0 0 0 2px black inset;
+}
+
+.nav-links .active {
+  color: black;
+  background-color: white;
+  box-shadow: 0 0 0 2px black inset;
+}
+
+/* ====== Typography ====== */
+.entry-title {
+  font-size: 2rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.entry-meta {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: white;
+}
+
+.entry-description {
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.back-link {
+  display: inline-block;
+  margin-top: 1.5rem;
+  text-decoration: underline;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+/* ====== Entry Section ====== */
+.entry-flex-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.entry-text-block {
+  flex: 1;
+  min-width: 300px;
+  max-width: 500px;
+}
+
+.entry-image-block {
+  flex: 1;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ====== Main Image Section ====== */
+.main-image-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 400px;
+  /* Fixed height to prevent shifting */
+  position: relative;
+  background-color: #f0f0f0;
+  /* Optional: helps visually anchor size */
+  padding: 10px;
+  box-sizing: border-box;
+  border-radius: 5px;
+}
+
+.main-image {
+  max-height: 100%;
+  max-width: calc(100% - 100px);
+  /* Leaves room for arrows */
+  object-fit: contain;
+  display: block;
+  margin: auto;
+}
+
+.arrow {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  z-index: 1;
+  color: black;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arrow:hover {
+  background-color: black;
+  border-radius: 5px;
+  color: white;
+}
+
+.arrow.left {
+  left: 0.5rem;
+}
+
+.arrow.right {
+  right: 0.5rem;
+}
+
+/* ====== Gallery Section ====== */
+.gallery-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1rem;
+  gap: 0.5rem;
+}
+
+.gallery-section {
+  margin-top: 2rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.thumbnail-viewport {
+  overflow: hidden;
+  width: 420px;
+}
+
+.image-gallery {
+  display: flex;
+  gap: 5px;
+  transition: transform 0.3s ease;
+}
+
+.image-gallery::-webkit-scrollbar {
+  height: 8px;
+}
+
+.image-gallery::-webkit-scrollbar-thumb {
+  background: #aaa;
+  border-radius: 4px;
+}
+
+/* ====== Utility ====== */
+.thumb {
+  width: 100px;
+  height: auto;
+  background-color: #ccc;
+  object-fit: cover;
+  display: block;
+  border: 2px solid transparent;
+  transition: border 0.2s ease;
+  border-radius: 5px;
+  cursor: pointer;
+  flex-shrink: 0;
+  /* Prevents shrinking */
+}
+
+.thumb.selected {
+  border: 2px solid black;
+}
+
+.thumb-arrow {
+  background: white;
+  font-size: 1.5rem;
+  padding: 5px;
+  border-radius: 5px;
+  cursor: pointer;
+  color: black;
+}
+
+/* ===== Footer ===== */
+.site-footer {
+  background-color: white;
+  color: black;
+}
+
+.footer-left p {
+  font-size: 15px;
+  color: black;
+}
+
+.footer-links a {
+  color: black;
+  text-decoration: none;
+}
+
+/* ====== Responsive (add here if needed) ====== */
+/* @media (max-width: ...) { ... } */

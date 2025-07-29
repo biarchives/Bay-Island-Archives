@@ -311,6 +311,7 @@ a:visited {
 .archive-card h3 {
   font-size: 1.1rem;
   margin-bottom: 0.5rem;
+  color:black;
 }
 
 .archive-card p {

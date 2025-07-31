@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bay Island Archives</title>
+  <title>Bay Islands Archives</title>
   <link rel="stylesheet" href="css/styles.css" />
   <link rel="icon" href="/favicon.ico" type="image/x-icon" />
 
@@ -18,7 +18,7 @@
   <div class="page-wrapper">
     <header class="site-header">
       <div class="header-content">
-        <a href="index.html" class="site-title">Bay Island Archives</a>
+        <a href="index.html" class="site-title">Bay Islands Archives</a>
         <nav class="nav-links">
           <a href="about.html">About</a>
           <a href="archives.html">Archives</a>
@@ -28,6 +28,12 @@
     </header>
 
     <main class="site-main">
+      <div class="main-text">
+        <h1>Explore the history of the Bay Islands</h1>
+        <p>Examine the rich history and diverse cultures of the Bay Islands through our interactive map and archives.
+        </p>
+        <p>Click on an island or location to discover stories, photos, and more.</p>
+      </div>
       <div class="main-content">
         <div id="sidebar" class="hidden">
           <button id="back-button">← Back to Map</button>
@@ -39,7 +45,6 @@
         </div>
         <!-- Archive Overlay -->
         <div id="archive-overlay" class="overlay hidden">
-          <button id="close-overlay">&times;</button>
           <div class="overlay-content">
             <div id="archive-previews"></div>
             <!-- JS will populate this with archive previews -->
@@ -103,10 +108,10 @@
     entries.forEach(entry => {
       const island = entry.fields.island?.toLowerCase().trim();
       const location = entry.fields.location?.toLowerCase().trim();
-      const type = entry.fields.fileType?.toLowerCase();
+      const type = entry.fields.typeOfEntry?.toLowerCase();
 
-      if (!islandCounts[island]) islandCounts[island] = { total: 0, photos: 0, videos: 0, audio: 0, text: 0 };
-      if (!locationCounts[location]) locationCounts[location] = { total: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+      if (!islandCounts[island]) islandCounts[island] = { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+      if (!locationCounts[location]) locationCounts[location] = { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
 
       islandCounts[island].total++;
       locationCounts[location].total++;
@@ -152,11 +157,11 @@
     });
   }
 
-  mapboxgl.accessToken = 'pk.eyJ1IjoiYXNoYWxhbWFsYWthIiwiYSI6ImNtZDR0MzN3ZzBqYWgyam4xdTM1MW4zamsifQ.Py54aN73n6ZB5U8vW1hscQ';
+  mapboxgl.accessToken = 'pk.eyJ1IjoiYmlhcmNoaXZlcyIsImEiOiJjbWRtZDRmMjIxa3JlMmpxMWIyM2ZleHVoIn0.qAlCMwvS56lvr7AbC2Iuug';
 
   const map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/ashalamalaka/cmdfk1stf015l01sahg78engu',
+    style: 'mapbox://styles/biarchives/cmdop5iqf01vp01sa2ol5fds9',
     center: [-86.57845621839104, 16.29814507230684],
     zoom: 9
   });
@@ -174,17 +179,17 @@
 
     map.on('mouseenter', 'bay-island-islands-fill', () => map.getCanvas().style.cursor = 'pointer');
     map.on('mouseleave', 'bay-island-islands-fill', () => map.getCanvas().style.cursor = '');
-    map.on('mouseenter', 'bay-island-geolocations', (e) => {
+    map.on('mouseenter', 'biarchives-geolocations', (e) => {
       const coordinates = e.features[0].geometry.coordinates.slice();
       const locationName = e.features[0].properties.location || "Unnamed Location";
       hoverPopup.setLngLat(coordinates).setHTML(`<strong>${locationName}</strong>`).addTo(map);
     });
-    map.on('mouseleave', 'bay-island-geolocations', () => hoverPopup.remove());
+    map.on('mouseleave', 'biarchives-geolocations', () => hoverPopup.remove());
 
     map.on('click', 'bay-island-islands-fill', (e) => {
       const props = e.features[0].properties;
       const island = props.island?.toLowerCase().trim();
-      const stats = islandCounts[island] || { total: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+      const stats = islandCounts[island] || { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
 
       if (lastSelectedIsland === props.island) return;
       lastSelectedIsland = props.island;
@@ -194,12 +199,14 @@
       document.getElementById('sidebar-description').textContent = props.description || "No description available.";
 
       document.getElementById('archive-buttons').innerHTML = `
-        <button id="btn-all">View All (${stats.total})</button>
-        <button id="btn-photos">Photos (${stats.photos})</button>
-        <button id="btn-videos">Videos (${stats.videos})</button>
-        <button id="btn-audio">Audio (${stats.audio})</button>
-        <button id="btn-text">Text (${stats.text})</button>
-      `;
+  <button id="btn-all">View All (${stats.total})</button>
+  <button id="btn-albums">Albums (${stats.albums})</button>
+  <button id="btn-photos">Photos (${stats.photos})</button>
+  <button id="btn-videos">Videos (${stats.videos})</button>
+  <button id="btn-audio">Audio (${stats.audio})</button>
+  <button id="btn-text">Text (${stats.text})</button>
+`;
+
 
       document.getElementById('sidebar').classList.remove('hidden');
 
@@ -209,10 +216,18 @@
         showOverlayForIsland(filtered);
       });
 
+      document.getElementById('btn-albums').addEventListener('click', () => {
+        const filtered = allEntries.filter(entry =>
+          entry.fields.island?.toLowerCase().trim() === island &&
+          entry.fields.typeOfEntry?.toLowerCase() === 'albums'
+        );
+        showOverlayForIsland(filtered);
+      });
+
       document.getElementById('btn-photos').addEventListener('click', () => {
         const filtered = allEntries.filter(entry =>
           entry.fields.island?.toLowerCase().trim() === island &&
-          entry.fields.fileType?.toLowerCase() === 'photos'
+          entry.fields.typeOfEntry?.toLowerCase() === 'photos'
         );
         showOverlayForIsland(filtered);
       });
@@ -220,7 +235,7 @@
       document.getElementById('btn-videos').addEventListener('click', () => {
         const filtered = allEntries.filter(entry =>
           entry.fields.island?.toLowerCase().trim() === island &&
-          entry.fields.fileType?.toLowerCase() === 'videos'
+          entry.fields.typeOfEntry?.toLowerCase() === 'videos'
         );
         showOverlayForIsland(filtered);
       });
@@ -228,7 +243,7 @@
       document.getElementById('btn-audio').addEventListener('click', () => {
         const filtered = allEntries.filter(entry =>
           entry.fields.island?.toLowerCase().trim() === island &&
-          entry.fields.fileType?.toLowerCase() === 'audio'
+          entry.fields.typeOfEntry?.toLowerCase() === 'audio'
         );
         showOverlayForIsland(filtered);
       });
@@ -236,47 +251,79 @@
       document.getElementById('btn-text').addEventListener('click', () => {
         const filtered = allEntries.filter(entry =>
           entry.fields.island?.toLowerCase().trim() === island &&
-          entry.fields.fileType?.toLowerCase() === 'text'
+          entry.fields.typeOfEntry?.toLowerCase() === 'text'
         );
         showOverlayForIsland(filtered);
       });
 
     });
 
-    map.on('click', 'bay-island-geolocations', (e) => {
+    map.on('click', 'biarchives-geolocations', (e) => {
       const props = e.features[0].properties;
       const location = props.location?.toLowerCase().trim();
-      const stats = locationCounts[location] || { total: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+      const stats = locationCounts[location] || { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
 
       document.getElementById('sidebar-title').textContent = props.location || "Untitled Location";
       document.getElementById('sidebar-subtitle').textContent = props.island || "";
       document.getElementById('sidebar-description').textContent = props.description || "No description available.";
 
       document.getElementById('archive-buttons').innerHTML = `
-        <button>View All (${stats.total})</button>
-        <button>Photos (${stats.photos})</button>
-        <button>Videos (${stats.videos})</button>
-        <button>Audio (${stats.audio})</button>
-        <button>Text (${stats.text})</button>
-      `;
+  <button id="btn-all">View All (${stats.total})</button>
+  <button id="btn-albums">Albums (${stats.albums})</button>
+  <button id="btn-photos">Photos (${stats.photos})</button>
+  <button id="btn-videos">Videos (${stats.videos})</button>
+  <button id="btn-audio">Audio (${stats.audio})</button>
+  <button id="btn-text">Text (${stats.text})</button>
+`;
+
 
       document.getElementById('sidebar').classList.remove('hidden');
-    });
 
-    document.getElementById('back-button').addEventListener('click', () => {
-      document.getElementById('sidebar').classList.add('hidden');
-      document.getElementById('archive-previews').innerHTML = '';
-      lastSelectedIsland = null;
-    });
+      // Attach click listeners
+      document.getElementById('btn-all').addEventListener('click', () => {
+        const filtered = allEntries.filter(entry => entry.fields.location?.toLowerCase().trim() === location);
+        showOverlayForIsland(filtered);
+      });
 
-    // Get references
-    const overlay = document.getElementById("archive-overlay");
-    const closeBtn = document.getElementById("close-overlay");
-    const overlayContent = document.querySelector(".overlay-content");
+      document.getElementById('btn-albums').addEventListener('click', () => {
+        const filtered = allEntries.filter(entry =>
+          entry.fields.location?.toLowerCase().trim() === location &&
+          entry.fields.typeOfEntry?.toLowerCase() === 'albums'
+        );
+        showOverlayForIsland(filtered);
+      });
 
-    // Add this block:
-    closeBtn.addEventListener('click', () => {
-      overlay.style.display = 'none';
+      document.getElementById('btn-photos').addEventListener('click', () => {
+        const filtered = allEntries.filter(entry =>
+          entry.fields.location?.toLowerCase().trim() === location &&
+          entry.fields.typeOfEntry?.toLowerCase() === 'photos'
+        );
+        showOverlayForIsland(filtered);
+      });
+
+      document.getElementById('btn-videos').addEventListener('click', () => {
+        const filtered = allEntries.filter(entry =>
+          entry.fields.location?.toLowerCase().trim() === location &&
+          entry.fields.typeOfEntry?.toLowerCase() === 'videos'
+        );
+        showOverlayForIsland(filtered);
+      });
+
+      document.getElementById('btn-audio').addEventListener('click', () => {
+        const filtered = allEntries.filter(entry =>
+          entry.fields.location?.toLowerCase().trim() === location &&
+          entry.fields.typeOfEntry?.toLowerCase() === 'audio'
+        );
+        showOverlayForIsland(filtered);
+      });
+
+      document.getElementById('btn-text').addEventListener('click', () => {
+        const filtered = allEntries.filter(entry =>
+          entry.fields.location?.toLowerCase().trim() === location &&
+          entry.fields.typeOfEntry?.toLowerCase() === 'text'
+        );
+        showOverlayForIsland(filtered);
+      });
     });
 
     // Example: show overlay and inject archive cards
@@ -326,6 +373,20 @@
       overlay.classList.remove("hidden");
     }
 
+    // Get references
+    const overlay = document.getElementById("archive-overlay");
+    const overlayContent = document.querySelector(".overlay-content");
+
+  document.getElementById('back-button').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.add('hidden');
+  document.getElementById('archive-previews').innerHTML = '';
+
+  const overlay = document.getElementById('archive-overlay');
+  overlay.classList.add('hidden');
+  overlay.style.display = ''; // <- This removes the inline style that keeps it visible
+
+  lastSelectedIsland = null;
+});
 
 
   });

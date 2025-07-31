@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BI Stories | Archive Entry</title>
+  <title id="page-title">BI Stories | Archive Entry</title>
   <link rel="stylesheet" href="css/entry.css" />
 </head>
 
@@ -12,11 +12,11 @@
   <!-- Header -->
   <header class="site-header">
     <div class="header-content">
-      <a href="index.html" class="site-title">Bay Island Archives</a>
+      <a href="index.html" class="site-title">Bay Islands Archives</a>
       <nav class="nav-links">
-        <a href="about.html">About</a>
-        <a href="archives.html">Archives</a>
-        <a href="contact.html">Contact</a>
+        <a href="/about.html">About</a>
+        <a href="/archives.html">Archives</a>
+        <a href="/contact.html">Contact</a>
       </nav>
     </div>
   </header>
@@ -24,7 +24,6 @@
   <!-- Main -->
   <main class="site-main">
     <section class="entry-content" id="entry-detail">
-      <!-- JS will inject content here -->
     </section>
   </main>
 
@@ -33,11 +32,11 @@
     <div class="footer-content">
       <div class="footer-left">
         <p>Preserving stories, honoring history.</p>
-        <h2>Bay Island Archives</h2>
+        <h2>Bay Islands Archives</h2>
         <div class="footer-links">
-          <a href="about.html">About</a>
-          <a href="archives.html">Archives</a>
-          <a href="contact.html">Contact</a>
+          <a href="./about.html">About</a>
+          <a href="./archives.html">Archives</a>
+          <a href="./contact.html">Contact</a>
         </div>
       </div>
       <div class="footer-center">
@@ -52,8 +51,18 @@
     </div>
   </footer>
 
+  <div class="fullscreen-overlay" id="fullscreen-overlay">
+    <div class="fullscreen-modal">
+      <button class="fullscreen-close" id="fullscreen-close">&times;</button>
+      <img src="" alt="Fullscreen Image" id="fullscreen-image" />
+      <p class="fullscreen-caption" id="fullscreen-caption"></p>
+      <button class="fullscreen-nav-arrow left" id="fullscreen-prev">&larr;</button>
+      <button class="fullscreen-nav-arrow right" id="fullscreen-next">&rarr;</button>
+    </div>
+  </div>
+
   <!-- Script -->
-  <script>
+ <script>
     window.addEventListener('load', () => {
       window.scrollTo(0, 0);
     });
@@ -71,44 +80,120 @@
         const includes = data.includes;
 
         const title = fields.title || 'Untitled';
-        const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown Year';
-        const location = fields.location || null;
-        const description = fields.description?.content?.[0]?.content?.[0]?.value || null;
+        // --- ADDED THIS LINE ---
+        document.title = `${title} | Bay Islands Archives`; 
+        // -----------------------
 
-        // Collect image IDs
-        const allImageIds = [];
-        if (fields.mainImage?.sys?.id) {
-          allImageIds.push(fields.mainImage.sys.id);
+        const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown Year';
+        let locationText = 'Unknown location';
+
+        if (fields.location?.sys?.id && includes?.Entry) {
+          const locationEntry = includes.Entry.find(e => e.sys.id === fields.location.sys.id);
+
+          if (locationEntry?.fields) {
+            const geoName = locationEntry.fields.geolocation || '';
+            const islandRef = locationEntry.fields.island;
+
+            if (islandRef?.sys?.id) {
+              const islandEntry = includes.Entry.find(e => e.sys.id === islandRef.sys.id);
+              const islandName = islandEntry?.fields?.island || 'Unknown island';
+              locationText = `${geoName}, ${islandName}`;
+            } else if (geoName) {
+              locationText = geoName;
+            }
+          }
         }
-        if (fields.additionalImages?.length) {
-          fields.additionalImages.forEach(img => {
-            if (img.sys?.id) allImageIds.push(img.sys.id);
-          });
-        }
+        const description = fields.description?.content?.[0]?.content?.[0]?.value || null;
 
         const assetsMap = {};
         includes?.Asset?.forEach(asset => {
           if (asset.sys.id && asset.fields?.file?.url) {
-            assetsMap[asset.sys.id] = `https:${asset.fields.file.url}`;
+            assetsMap[asset.sys.id] = {
+              url: `https:${asset.fields.file.url}`,
+              description: asset.fields.description || '',
+              contentType: asset.fields.file.contentType
+            };
           }
         });
 
-        const imageUrls = allImageIds
-          .map(id => assetsMap[id])
-          .filter(Boolean);
+        // --- New Media Handling for Entry Page ---
+        let mainMediaHtml = '';
+        let galleryHtml = '';
+        const allImagesForGallery = []; // This will contain all images that should appear in the *bottom* scrollable gallery
 
-        if (imageUrls.length === 0) {
-          imageUrls.push('https://placehold.co/600x400?text=No+Image');
+        // 1. Handle primary 'media' field (image, video, or audio)
+        if (fields.media?.sys?.id) { // Assuming 'media' is the ID of your flexible media field
+            const mediaAsset = assetsMap[fields.media.sys.id];
+            if (mediaAsset) {
+                if (mediaAsset.contentType.startsWith('image/')) {
+                    mainMediaHtml = `<img src="${mediaAsset.url}" id="thumbnailImage" class="thumbnail-image" alt="${mediaAsset.description || title}" />`;
+                    allImagesForGallery.push(mediaAsset); // Add to gallery if it's an image
+                } else if (mediaAsset.contentType.startsWith('video/')) {
+                    mainMediaHtml = `
+                        <video controls class="thumbnail-video">
+                            <source src="${mediaAsset.url}" type="${mediaAsset.contentType}">
+                            Your browser does not support the video tag.
+                        </video>
+                    `;
+                } else if (mediaAsset.contentType.startsWith('audio/')) {
+                    mainMediaHtml = `
+                        <audio controls class="thumbnail-audio">
+                            <source src="${mediaAsset.url}" type="${mediaAsset.contentType}">
+                            Your browser does not support the audio element.
+                        </audio>
+                    `;
+                }
+            }
         }
 
-        const metaLines = [
-          location ? `<p class="entry-meta">${location} <br> ${date}</p>` : '',
-        ].join('');
+        // 2. If no 'media' or if 'media' was not an image, check for 'thumbnailImage' as the main display
+        if (!mainMediaHtml && fields.thumbnailImage?.sys?.id) {
+          const thumbAsset = assetsMap[fields.thumbnailImage.sys.id];
+          if (thumbAsset && thumbAsset.contentType.startsWith('image/')) {
+            mainMediaHtml = `<img src="${thumbAsset.url}" id="thumbnailImage" class="thumbnail-image" alt="${thumbAsset.description || title}" />`;
+            allImagesForGallery.push(thumbAsset); // Add to gallery if it's an image
+          }
+        }
 
-        const descriptionBlock = description
-          ? `<div class="entry-description">${description}</div>` : '';
+        // 3. Populate allImagesForGallery with 'imageGallery' content (only if they are images and not duplicates)
+        if (fields.imageGallery?.length) {
+          fields.imageGallery.forEach(img => {
+            if (img.sys?.id) {
+              const galleryAsset = assetsMap[img.sys.id];
+              // Only add if it's an image and not already in the main gallery list (from media or thumbnailImage)
+              if (galleryAsset && galleryAsset.contentType.startsWith('image/') && !allImagesForGallery.some(data => data.url === galleryAsset.url)) {
+                allImagesForGallery.push(galleryAsset);
+              }
+            }
+          });
+        }
 
-        // VIDEO EMBED
+        // If after all checks, there's still no main media, use a placeholder
+        if (!mainMediaHtml) {
+          mainMediaHtml = `<img src="https://placehold.co/600x400?text=No+Image" id="thumbnailImage" class="thumbnail-image" alt="No image available for this entry" />`;
+        }
+
+        // Conditionally render the image gallery (thumbnails below the main media)
+        if (allImagesForGallery.length > 0) {
+            galleryHtml = `
+                <div class="gallery-wrapper">
+                    <button class="thumb-arrow thumb-left">←</button>
+                    <div class="thumbnail-viewport">
+                        <div class="image-gallery" id="image-gallery">
+                            ${allImagesForGallery.map((imgData, i) => `
+                                <img class="thumb ${i === 0 ? 'selected' : ''}" src="${imgData.url}" data-index="${i}" alt="${imgData.description || 'Thumbnail image'}" />
+                            `).join('')}
+                        </div>
+                    </div>
+                    <button class="thumb-arrow thumb-right">→</button>
+                </div>
+            `;
+        }
+
+
+        const metaLines = `<p class="entry-meta">${locationText}<br>${date}</p>`;
+        const descriptionBlock = description ? `<div class="entry-description">${description}</div>` : '';
+
         function toYouTubeEmbed(url) {
           const match = url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([\w-]+)/);
           return match ? `https://www.youtube.com/embed/${match[1]}` : url;
@@ -118,36 +203,32 @@
         if (fields.videoEmbedURL) {
           const embedURL = toYouTubeEmbed(fields.videoEmbedURL);
           videoEmbed = `
-    <div class="entry-media">
-      <h3>Video</h3>
-      <div class="video-wrapper">
-        <iframe src="${embedURL}" frameborder="0" allowfullscreen></iframe>
-      </div>
-    </div>
-  `;
+            <div class="entry-media">
+              <h3>Video</h3>
+              <div class="video-wrapper">
+                <iframe src="${embedURL}" frameborder="0" allowfullscreen></iframe>
+              </div>
+            </div>
+          `;
         }
 
-        // AUDIO / VIDEO MEDIA
-        let mediaBlock = '';
         let mediaSection = '';
-        if (videoEmbed || mediaBlock) {
+        // Only show mediaSection if there's an embedded video. The primary 'media' field is handled above.
+        if (videoEmbed) {
           mediaSection = `
-    <section class="entry-media-section">
-      <div class="media-row">
-        <div class="media-left">
-          ${videoEmbed}
-          ${mediaBlock}
-        </div>
-        <div class="media-right">
-          <p>This media was included to supplement the archive record with audiovisual material.</p>
-        </div>
-      </div>
-    </section>
-  `;
+            <section class="entry-media-section">
+              <div class="media-row">
+                <div class="media-left">
+                  ${videoEmbed}
+                </div>
+                <div class="media-right">
+                  <p>This media was included to supplement the archive record with audiovisual material.</p>
+                </div>
+              </div>
+            </section>
+          `;
         }
 
-
-        // RELATED ARCHIVE RECORDS (only links by title)
         let relatedLinks = '';
         if (fields.relatedArchiveRecords?.length) {
           const related = fields.relatedArchiveRecords
@@ -156,114 +237,264 @@
 
           if (related.length) {
             relatedLinks = `
-  <section class="entry-section entry-related">
-    <h3>Related Archive Records</h3>
-    <div class="related-cards">
-      ${related.map(e => {
-              const title = e.fields.title || 'Untitled';
-              const image = e.fields.mainImage?.sys?.id ? assetsMap[e.fields.mainImage.sys.id] : 'https://placehold.co/400x300?text=No+Image';
-              return `
-          <a class="related-card" href="/entry.html?id=${e.sys.id}">
-            <img src="${image}" alt="${title}" />
-            <div class="related-card-text">
-              <h4>${title}</h4>
-            </div>
-          </a>`;
-            }).join('')}
-    </div>
-  </section>
-`;
+              <section class="entry-section entry-related">
+                <h3>Related Archive Records</h3>
+                <div class="related-cards">
+                  ${related.map(e => {
+              let relatedImageUrl = 'https://placehold.co/400x300?text=No+Image';
+              let relatedImageDescription = 'No image available';
 
+              // Related card image priority: media > thumbnailImage > first imageGallery > placeholder
+              if (e.fields.media?.sys?.id) {
+                  const relatedMediaAsset = assetsMap[e.fields.media.sys.id];
+                  if (relatedMediaAsset && relatedMediaAsset.contentType.startsWith('image/')) {
+                      relatedImageUrl = relatedMediaAsset.url;
+                      relatedImageDescription = relatedMediaAsset.description || '';
+                  }
+              } else if (e.fields.thumbnailImage?.sys?.id) {
+                  const thumbAsset = assetsMap[e.fields.thumbnailImage.sys.id];
+                  if (thumbAsset && thumbAsset.contentType.startsWith('image/')) {
+                      relatedImageUrl = thumbAsset.url;
+                      relatedImageDescription = thumbAsset.description || '';
+                  }
+              } else if (e.fields.imageGallery?.length && e.fields.imageGallery[0].sys?.id) {
+                  const firstGalleryAsset = assetsMap[e.fields.imageGallery[0].sys.id];
+                  if (firstGalleryAsset && firstGalleryAsset.contentType.startsWith('image/')) {
+                      relatedImageUrl = firstGalleryAsset.url;
+                      relatedImageDescription = firstGalleryAsset.description || '';
+                  }
+              }
+
+              const relatedTitle = e.fields.title || 'Untitled';
+              const relatedDescription = e.fields.description?.content?.[0]?.content?.[0]?.value || '';
+
+              return `
+                          <a class="related-card" href="/entry.html?id=${e.sys.id}">
+                            <img src="${relatedImageUrl}" alt="${relatedImageDescription ? relatedImageDescription : relatedTitle}" />
+                            <div class="related-card-text">
+                              <h4>${relatedTitle}</h4>
+                              <p>${relatedDescription.substring(0, 100)}${relatedDescription.length > 100 ? '...' : ''}</p>
+                            </div>
+                          </a>`;
+            }).join('')}
+                </div>
+              </section>
+            `;
           }
         }
-        // Build HTML
+
         const container = document.getElementById('entry-detail');
         container.innerHTML = `
-  <a href="archives.html" class="back-link">← To All Archives</a>
+          <a href="/archives.html" class="back-link">← To All Archives</a>
 
-<div class="entry-main">
-  <div class="entry-header">
-    <div class='entry-text-block'>
-      <h1 class="entry-title">${title}</h1>
-      ${metaLines}
-      ${descriptionBlock}
-    </div>
-    <div class="entry-gallery">
-      <div class="main-image-wrapper">
-        <button class="arrow left">&larr;</button>
-        <img src="${imageUrls[0]}" id="mainImage" class="main-image" />
-        <button class="arrow right">&rarr;</button>
-      </div>
-    </div> 
-  </div>
-  <div class="gallery-wrapper">
-    <button class="thumb-arrow thumb-left">&larr;</button>
-    <div class="thumbnail-viewport">
-      <div class="image-gallery" id="image-gallery">
-        ${imageUrls.map((url, i) => `
-          <img class="thumb ${i === 0 ? 'selected' : ''}" src="${url}" data-index="${i}" />
-        `).join('')}
-      </div>
-    </div>
-    <button class="thumb-arrow thumb-right">&rarr;</button>
-  </div>
-</div>
+          <div class="entry-main">
+            <div class="entry-header">
+              <div class='entry-text-block'>
+                <h1 class="entry-title">${title}</h1>
+                ${metaLines}
+                ${descriptionBlock}
+              </div>
+              <div class="entry-gallery">
+                <div class="thumbnail-image-wrapper">
+                  <button class="arrow left">←</button>
+                  ${mainMediaHtml}
+                  <button class="arrow right">→</button>
+                  <span class="fullscreen-icon" id="fullscreen-toggle">⛶</span>
+                </div>
+              </div>
+            </div>
+            ${galleryHtml}
+          </div>
 
-${mediaSection}
+          ${mediaSection}
 
-${relatedLinks}
-`;
+          ${relatedLinks}
+        `;
 
-
-        // Functionality
+        // --- Functionality (only run if relevant elements exist after HTML injection) ---
         let currentIndex = 0;
-        const mainImage = document.getElementById('mainImage');
+        const thumbnailImage = document.getElementById('thumbnailImage'); // Note: This could be an image, video, or audio element now
         const thumbs = document.querySelectorAll('.image-gallery img');
 
-        const updateImage = (index) => {
-          currentIndex = (index + imageUrls.length) % imageUrls.length;
-          mainImage.src = imageUrls[currentIndex];
-          thumbs.forEach(el => el.classList.remove('selected'));
-          thumbs[currentIndex].classList.add('selected');
-        };
+        const fullscreenOverlay = document.getElementById('fullscreen-overlay');
+        const fullscreenImage = document.getElementById('fullscreen-image');
+        const fullscreenCaption = document.getElementById('fullscreen-caption');
+        const fullscreenClose = document.getElementById('fullscreen-close');
+        const fullscreenPrev = document.getElementById('fullscreen-prev');
+        const fullscreenNext = document.getElementById('fullscreen-next');
+        const fullscreenToggle = document.getElementById('fullscreen-toggle');
 
-        thumbs.forEach((thumb, index) => {
-          thumb.addEventListener('click', () => updateImage(index));
-        });
-
-        document.querySelector('.arrow.left').addEventListener('click', () => updateImage(currentIndex - 1));
-        document.querySelector('.arrow.right').addEventListener('click', () => updateImage(currentIndex + 1));
-
-        let thumbStartIndex = 0;
-        const thumbsPerPage = 4;
-
-        const updateThumbnailView = () => {
-          const gallery = document.getElementById('image-gallery');
-          const offset = thumbStartIndex * 105; // 100px width + 5px gap
-          gallery.style.transform = `translateX(-${offset}px)`;
-        };
+        const galleryWrapper = document.querySelector('.gallery-wrapper');
+        const thumbnailViewport = document.querySelector('.thumbnail-viewport');
+        const imageGallery = document.getElementById('image-gallery');
 
 
-        document.querySelector('.thumb-left').addEventListener('click', () => {
-          if (thumbStartIndex > 0) {
-            thumbStartIndex--;
+        // Only set up image gallery functionality if there are images in the gallery
+        if (allImagesForGallery.length > 0) {
+            const updateImage = (index) => {
+              currentIndex = (index + allImagesForGallery.length) % allImagesForGallery.length;
+              if (thumbnailImage) { // Check if main display is an image to update its source
+                if (thumbnailImage.tagName === 'IMG') {
+                   thumbnailImage.src = allImagesForGallery[currentIndex].url;
+                   thumbnailImage.alt = allImagesForGallery[currentIndex].description || '';
+                }
+              }
+              thumbs.forEach(el => el.classList.remove('selected'));
+              if (thumbs[currentIndex]) {
+                thumbs[currentIndex].classList.add('selected');
+              }
+              if (fullscreenOverlay.classList.contains('visible')) {
+                updateFullscreenImage(currentIndex);
+              }
+            };
+
+            const updateFullscreenImage = (index) => {
+              fullscreenImage.src = allImagesForGallery[index].url;
+              fullscreenCaption.textContent = allImagesForGallery[index].description || '';
+            };
+
+            const openFullscreen = (index) => {
+              fullscreenOverlay.classList.add('visible');
+              updateFullscreenImage(index);
+              document.body.style.overflow = 'hidden';
+            };
+
+            const closeFullscreen = () => {
+              fullscreenOverlay.classList.remove('visible');
+              document.body.style.overflow = '';
+            };
+
+            // Event Listeners for main image navigation (only for actual images)
+            if (thumbnailImage && thumbnailImage.tagName === 'IMG') {
+                thumbnailImage.addEventListener('click', () => openFullscreen(currentIndex));
+            }
+            if (fullscreenToggle) {
+                fullscreenToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openFullscreen(currentIndex);
+                });
+            }
+
+            thumbs.forEach((thumb, index) => {
+              thumb.addEventListener('click', () => updateImage(index));
+            });
+
+            if (document.querySelector('.arrow.left')) {
+              document.querySelector('.arrow.left').addEventListener('click', () => updateImage(currentIndex - 1));
+            }
+            if (document.querySelector('.arrow.right')) {
+              document.querySelector('.arrow.right').addEventListener('click', () => updateImage(currentIndex + 1));
+            }
+
+            // Event Listeners for Fullscreen
+            if (fullscreenClose) {
+              fullscreenClose.addEventListener('click', closeFullscreen);
+            }
+            if (fullscreenPrev) {
+              fullscreenPrev.addEventListener('click', () => {
+                currentIndex = (currentIndex - 1 + allImagesForGallery.length) % allImagesForGallery.length;
+                updateImage(currentIndex);
+              });
+            }
+            if (fullscreenNext) {
+              fullscreenNext.addEventListener('click', () => {
+                currentIndex = (currentIndex + 1) % allImagesForGallery.length;
+                updateImage(currentIndex);
+              });
+            }
+            if (fullscreenOverlay) {
+              fullscreenOverlay.addEventListener('click', (e) => {
+                if (e.target === fullscreenOverlay) {
+                  closeFullscreen();
+                }
+              });
+            }
+            document.addEventListener('keydown', (e) => {
+              if (fullscreenOverlay && fullscreenOverlay.classList.contains('visible')) {
+                if (e.key === 'Escape') {
+                  closeFullscreen();
+                } else if (e.key === 'ArrowLeft') {
+                  currentIndex = (currentIndex - 1 + allImagesForGallery.length) % allImagesForGallery.length;
+                  updateImage(currentIndex);
+                } else if (e.key === 'ArrowRight') {
+                  currentIndex = (currentIndex + 1) % allImagesForGallery.length;
+                  updateImage(currentIndex);
+                }
+              }
+            });
+
+
+            let thumbStartIndex = 0;
+            const thumbWidth = 80;
+            const thumbGap = 5;
+
+            const updateViewportWidth = () => {
+              if (thumbs.length === 0) {
+                thumbnailViewport.style.width = '0px';
+                galleryWrapper.style.width = `calc(0px + ${thumbLeftArrow.offsetWidth}px + ${thumbRightArrow.offsetWidth}px + ${thumbGap * 2}px)`;
+                return;
+              }
+
+              let visibleThumbsCount = Math.min(thumbs.length, 4);
+
+              const totalThumbsWidth = (visibleThumbsCount * thumbWidth) + ((visibleThumbsCount - 1) * thumbGap);
+
+              thumbnailViewport.style.width = `${totalThumbsWidth}px`;
+              thumbnailViewport.style.maxWidth = `${totalThumbsWidth}px`;
+
+              const thumbLeftArrow = document.querySelector('.thumb-left');
+              const thumbRightArrow = document.querySelector('.thumb-right');
+
+              if (galleryWrapper && thumbnailViewport && thumbLeftArrow && thumbRightArrow) {
+                const wrapperWidth = thumbnailViewport.offsetWidth + thumbLeftArrow.offsetWidth + thumbRightArrow.offsetWidth + (thumbGap * 2);
+                galleryWrapper.style.width = `${wrapperWidth}px`;
+              }
+            };
+
+            const updateThumbnailView = () => {
+              const gallery = document.getElementById('image-gallery');
+              if (gallery) {
+                const offset = thumbStartIndex * (thumbWidth + thumbGap);
+                gallery.style.transform = `translateX(-${offset}px)`;
+              }
+            };
+
+            const thumbLeftArrow = document.querySelector('.thumb-left');
+            const thumbRightArrow = document.querySelector('.thumb-right');
+
+            if (thumbLeftArrow) {
+              thumbLeftArrow.addEventListener('click', () => {
+                if (thumbStartIndex > 0) {
+                  thumbStartIndex--;
+                  updateThumbnailView();
+                }
+              });
+            }
+
+            if (thumbRightArrow) {
+              thumbRightArrow.addEventListener('click', () => {
+                const thumbsPerPage = Math.floor(thumbnailViewport.offsetWidth / (thumbWidth + thumbGap));
+
+                if (thumbStartIndex + thumbsPerPage < allImagesForGallery.length) {
+                  thumbStartIndex++;
+                  updateThumbnailView();
+                }
+              });
+            }
+
+            updateViewportWidth();
             updateThumbnailView();
-          }
-        });
-
-        document.querySelector('.thumb-right').addEventListener('click', () => {
-          if (thumbStartIndex + thumbsPerPage < imageUrls.length) {
-            thumbStartIndex++;
-            updateThumbnailView();
-          }
-        });
-
-        updateThumbnailView(); // initialize
+        } else {
+            // Hide elements if there's no gallery data
+            if (galleryWrapper) galleryWrapper.style.display = 'none';
+            if (document.querySelector('.arrow.left')) document.querySelector('.arrow.left').style.display = 'none';
+            if (document.querySelector('.arrow.right')) document.querySelector('.arrow.right').style.display = 'none';
+            if (fullscreenToggle) fullscreenToggle.style.display = 'none';
+        }
 
       })
       .catch(err => console.error('Failed to load entry:', err));
   </script>
-
 
 </body>
 

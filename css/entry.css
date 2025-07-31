@@ -4,24 +4,57 @@
 body {
   background-color: #1e1e1e;
   color: white;
+  /* Ensure body doesn't have excess padding/margin that would break alignment */
+  margin: 0;
+  padding: 0;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   font-family: 'Odibee Sans', sans-serif;
   color: white;
   font-size: 30px;
 }
 
+/* ==================================================================== */
+/* Header & Main Alignment */
+/* Apply max-width and margin auto directly to header and main elements */
+/* ==================================================================== */
+.site-header,
 .site-main {
+  max-width: 1200px;
+  /* Set your desired maximum content width here */
+  margin: 0 auto;
+  /* Center the header and main content blocks */
+  width: 100%;
+  /* Ensure they take full width up to max-width */
+}
+
+.site-header {
+  /* Added padding to the header itself for content spacing */
+  padding: 2rem;
+  /* Adjust as needed */
+  box-sizing: border-box;
+  /* Include padding in the 100% width calculation */
+}
+
+.site-main {
+  margin-top: 30px;
+  /* Space from the header */
+  padding: 2rem;
+  /* This padding will be inside the 1200px width */
+  box-sizing: border-box;
+  /* Include padding in the 100% width calculation */
   display: flex;
+  /* Keep your existing flex properties */
   flex-direction: column;
   justify-content: space-between;
   height: auto;
   align-items: center;
-  max-width: 1200px;
-  margin: 30px auto;
-  padding: 2rem;
+  /* Remove any redundant max-width or margin that was here previously */
 }
+
 
 /* ===== Header & Navigation ===== */
 .site-header a {
@@ -30,8 +63,16 @@ h1, h2, h3 {
   color: white;
 }
 
+/* Adjust header-content to fill its parent (.site-header) */
 .header-content {
   border-bottom: 3px solid white;
+  width: 100%;
+  /* Ensure it fills the .site-header's constrained width */
+  /* Remove any max-width or margin from here if they were present */
+  display: flex;
+  /* Assuming it's a flex container for site-title and nav-links */
+  justify-content: space-between;
+  align-items: center;
 }
 
 .nav-links a {
@@ -53,13 +94,14 @@ h1, h2, h3 {
 /* ===== Typography ===== */
 .entry-title {
   font-size: 2rem;
-  color:#FFB800;
+  color: #FFB800;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
 }
 
 .entry-meta {
   font-size: 20px;
+  text-transform: uppercase;
   margin-bottom: 0.5rem;
   font-family: 'Odibee Sans', sans-serif;
 }
@@ -74,6 +116,7 @@ h1, h2, h3 {
   display: inline-block;
   text-decoration: underline;
   color: white;
+  /* Ensure visibility on dark background */
 }
 
 /* ===== Entry Layout ===== */
@@ -83,6 +126,8 @@ h1, h2, h3 {
   justify-content: center;
   gap: 5rem;
   margin: 2rem 0;
+  width: 100%;
+  /* Ensure it fills the available width of site-main */
 }
 
 .entry-text-block {
@@ -93,100 +138,218 @@ h1, h2, h3 {
 
 .entry-gallery {
   flex: 1 1 45%;
-  max-width: fit-content;
 }
 
-/* ===== Main Image ===== */
-.main-image-wrapper {
+/* ==================================================================== */
+/* Main Image (Thumbnail Image Wrapper) - Fixed Size and Image Fit */
+/* ==================================================================== */
+.thumbnail-image-wrapper {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
+  width: 600px;
+  /* Fixed width */
   height: 400px;
-  max-width: fit-content;
-  padding: 10px;
-  background-color: #f0f0f0;
+  /* Fixed height */
+  padding: 10px 5px;
+  background-color: #f7f7f7;
+  border: 2px solid #9c321f;
+  box-shadow: 0 0 2px black inset;
   border-radius: 5px;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.main-image {
-  height: 100%;
+.thumbnail-image {
+  max-width: 100%;
+  max-height: 100%;
   width: auto;
-  object-fit: fill;
+  height: auto;
+  object-fit: contain;
 }
 
-/* ===== Gallery ===== */
+/* Basic styles for the fullscreen modal */
+.fullscreen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.fullscreen-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.fullscreen-modal {
+  position: relative;
+  max-width: 90%;
+  max-height: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.fullscreen-modal img {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+}
+
+.fullscreen-caption {
+  color: white;
+  margin-top: 10px;
+  font-size: 1rem;
+  text-align: center;
+  max-width: 80%;
+}
+
+.fullscreen-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  color: white;
+  font-size: 2rem;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.fullscreen-nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: white;
+  font-size: 3rem;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0 15px;
+  z-index: 1010;
+}
+
+.fullscreen-nav-arrow.left {
+  left: 10px;
+}
+
+.fullscreen-nav-arrow.right {
+  right: 10px;
+}
+
+.fullscreen-icon {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 5px;
+  border-radius: 5px;
+  z-index: 50;
+}
+
+/* ==================================================================== */
+/* Gallery - Centered */
+/* ==================================================================== */
 .gallery-wrapper {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: center; /* This centers the *content* inside the wrapper */
   margin-top: 1rem;
-  max-width: 800px;
   gap: 0.5rem;
+  background-color: none;
+  padding: 10px;
+  border-radius: 5px;
+  box-sizing: border-box;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .thumbnail-viewport {
   overflow: hidden;
-  width: auto;
-  max-width: 100%;
+  padding: 0 px;
+  flex-shrink: 0;
+  /* Important: Prevents it from shrinking if wrapper is smaller */
+  white-space: nowrap;
+  /* Keep thumbs in a single line */
 }
 
 .image-gallery {
   display: flex;
   gap: 5px;
+  /* This is the `thumbGap` in JS */
   transition: transform 0.3s ease;
-}
-
-.image-gallery::-webkit-scrollbar {
-  height: 8px;
-}
-
-.image-gallery::-webkit-scrollbar-thumb {
-  background: #aaa;
-  border-radius: 4px;
+  /* Ensure no implicit padding/border that would mess up calculation */
+  padding: 0;
+  margin: 0;
 }
 
 .thumb {
   width: 80px;
+  /* This is the `thumbWidth` in JS */
   height: 80px;
-  background-color: #ccc;
   object-fit: cover;
   border-radius: 5px;
   cursor: pointer;
   flex-shrink: 0;
-  border: 2px solid transparent;
+  /* Keep thumbs from shrinking */
   transition: border 0.2s ease;
+  /* No background-color needed here if image fills it */
 }
 
 .thumb.selected {
-  border: 2px solid black;
+  border: 2px solid #9c321f;
 }
 
 .thumb-arrow {
-  background: white;
+  background: #9C321F;
+    border: 2px solid #1e1e1e;
   font-size: 1.5rem;
-  padding: 5px;
   border-radius: 5px;
   cursor: pointer;
+  color: #f7f7f7;
+  flex-shrink: 0;
+  padding: 0 10px;
+}
+.thumb-arrow:hover {
+  background-color: #FFB800;
   color: black;
 }
 
 /* ===== Arrows ===== */
 .arrow {
-  background: none;
-  border: none;
+  background: #9C321F;
+  border-radius: 5px;
+  border: 2px solid #1e1e1e;
+  padding: 0 10px;
   font-size: 2rem;
   cursor: pointer;
-  color: black;
+  color: #f7f7f7;
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .arrow:hover {
-  background-color: black;
+  background-color: #FFB800;
   border-radius: 5px;
   color: white;
 }
@@ -202,7 +365,9 @@ h1, h2, h3 {
 /* ===== Media Blocks ===== */
 .entry-media-section {
   margin-top: 2rem;
+  width: 100%;
 }
+
 .media-row {
   display: flex;
   flex-direction: row;
@@ -219,7 +384,9 @@ h1, h2, h3 {
   position: relative;
   padding-bottom: 56.25%;
   height: 0;
+  width: 100%;
   overflow: hidden;
+  border-radius: 5px;
 }
 
 .video-wrapper iframe {
@@ -230,14 +397,17 @@ h1, h2, h3 {
   top: 0;
 }
 
-.media-right{
+.media-right {
   font-size: 14px;
   flex: 1 1;
 }
 
-/* ===== Related Cards ===== */
+/* ==================================================================== */
+/* Related Cards - Fixed Size and Image Fit */
+/* ==================================================================== */
 .entry-related {
   margin-top: 2rem;
+  width: 100%;
 }
 
 .entry-related h3 {
@@ -249,16 +419,22 @@ h1, h2, h3 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1rem;
+  justify-content: center;
 }
 
 .related-card {
   border: 1px solid #ccc;
   border-radius: 6px;
+  height: 200px;
+  max-width: 500px;
   background: #fff;
-  color: inherit;
-  overflow: hidden;
+  padding: 1rem;
+  display: flex;
+  flex-direction: row;
   transition: box-shadow 0.2s ease;
   text-decoration: none;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .related-card:hover {
@@ -266,23 +442,63 @@ h1, h2, h3 {
 }
 
 .related-card img {
-  width: 100%;
-  height: auto;
+  width: 150px;
+  height: 100%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border-radius: 4px;
+  margin-right: 1rem;
 }
 
 .related-card-text {
-  padding: 0.75rem;
+  flex-grow: 1;
+  padding: 0;
+  color: black;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .related-card-text h4 {
-  margin: 0;
+  margin: 0 0 0.5rem 0;
   font-size: 1.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+.related-card-text p {
+  flex-grow: 1;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
 
 /* ===== Footer ===== */
 .site-footer {
   background-color: white;
   color: black;
+  padding: 2rem;
+  /* Add padding for internal content */
+  box-sizing: border-box;
+  /* Include padding in the width */
+}
+
+.footer-content {
+  width: 100%;
+  /* Fill the constrained width of .site-footer */
+  display: flex;
+  /* Assuming it has flex children */
+  justify-content: space-between;
+  flex-wrap: wrap;
+  /* Allow wrapping on smaller screens */
+  gap: 1rem;
+  /* Space between footer items */
 }
 
 .footer-left p {
@@ -295,31 +511,95 @@ h1, h2, h3 {
   text-decoration: none;
 }
 
+/* ==================================================================== */
+/* Media Queries - Adjustments for new fixed layouts */
+/* ==================================================================== */
 @media (max-width: 900px) {
-  .site-main {
-    padding: 2rem;
+
+  /* Reduce padding on header and main for smaller screens */
+  .site-header,
+  .site-main,
+  .site-footer {
+    padding: 1rem;
+    /* Adjust as needed */
   }
 
   .entry-header {
     flex-direction: column;
     align-items: center;
+    gap: 2rem;
   }
 
-  .entry-text-block, .entry-gallery {
+  .entry-text-block,
+  .entry-gallery {
     flex: 1 1 100%;
     max-width: none;
+  }
+
+  .thumbnail-image-wrapper {
+    width: 90vw;
+    height: 90vw;
+    max-width: 400px;
+    max-height: 400px;
   }
 
   .thumbnail-viewport {
     width: 100%;
   }
+
+  .media-row {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .media-left,
+  .media-right {
+    flex: 1 1 100%;
+  }
+
+  .related-card {
+    height: auto;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .related-card img {
+    width: 100%;
+    height: 150px;
+    margin-right: 0;
+    margin-bottom: 0.5rem;
+  }
+
+  .related-card-text {
+    padding: 0.5rem 0;
+  }
+
+  .related-card-text h4,
+  .related-card-text p {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    -webkit-line-clamp: unset;
+  }
+
+  .footer-content {
+    flex-direction: column;
+    /* Stack footer items */
+    align-items: center;
+    text-align: center;
+  }
 }
 
 @media (max-width: 600px) {
-  .site-main {
-    padding: 1rem;
-    margin: 0 auto;
+
+  .site-header,
+  .site-main,
+  .site-footer {
+    padding: 0.5rem;
+    /* Even less padding on very small screens */
   }
+
   .site-header a {
     font-size: 18px;
   }

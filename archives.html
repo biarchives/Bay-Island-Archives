@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Archives | Bay Island Archives</title>
+  <title>Bay Islands Archives</title>
   <link rel="stylesheet" href="css/archives.css" />
   <link rel="preload" href="fonts/OdibeeSans-Regular.ttf" as="font" type="font/ttf" crossorigin="anonymous">
   <link rel="preload" href="fonts/PTMono-Regular.ttf" as="font" type="font/ttf" crossorigin="anonymous">
@@ -15,7 +15,7 @@
   <!-- Header -->
   <header class="site-header">
     <div class="container header-content">
-      <a href="index.html" class="site-title">Bay Island Archives</a>
+      <a href="index.html" class="site-title">Bay Islands Archives</a>
       <nav class="nav-links">
         <a href="about.html">About</a>
         <a href="archives.html" class="active">Archives</a>
@@ -112,172 +112,196 @@
 <script>
   const spaceId = 'yp5hut9gr3i4';
   const accessToken = '6cmQ6BIqhbITci25VJRJxasRNDvkKb_74mYDBAKfPdY';
-  const contentTypeId = 'archivePage';
+  const contentTypes = ['archivePage', 'singleEntry'];
 
-  const url = `https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&content_type=${contentTypeId}&include=1`;
+  const activeFilters = {
+    location: new Set(),
+    type: new Set()
+  };
 
-  fetch(url)
-    .then(res => res.json())
+  Promise.all(
+    contentTypes.map(type =>
+      fetch(`https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&content_type=${type}&include=2`)
+        .then(res => res.json())
+    )
+  )
     .then(data => {
-      const items = data.items;
-      const assets = data.includes.Asset;
+      const [archivePage, singleEntry] = data;
+      const allItems = [...archivePage.items, ...singleEntry.items];
+      const allAssets = [
+        ...(archivePage.includes?.Asset || []),
+        ...(singleEntry.includes?.Asset || [])
+      ];
+      const allEntries = [
+        ...(archivePage.includes?.Entry || []),
+        ...(singleEntry.includes?.Entry || [])
+      ];
+
       const grid = document.querySelector('.archive-grid');
 
-      items.forEach(item => {
-        const fields = item.fields;
+      // Create a map for quick asset lookup
+      const assetsMap = {};
+      allAssets.forEach(asset => {
+        if (asset.sys.id && asset.fields?.file?.url) {
+          assetsMap[asset.sys.id] = {
+            url: `https:${asset.fields.file.url}`,
+            description: asset.fields.description || ''
+          };
+        }
+      });
 
+      allItems.forEach(item => {
+        const fields = item.fields;
         const title = fields.title || 'Untitled';
         const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown year';
-        const location = fields.location || 'Unknown location';
 
-        // Get image URL from linked asset
-        let imageUrl = 'https://via.placeholder.com/300x200';
-        if (fields.mainImage && fields.mainImage.sys) {
-          const imageId = fields.mainImage.sys.id;
-          const asset = assets.find(a => a.sys.id === imageId);
-          if (asset) {
-            imageUrl = `https:${asset.fields.file.url}`;
+        // Resolve Location Field
+        let locationText = 'Unknown location';
+        let islandText = 'unknown';
+
+        if (fields.location?.sys?.id) {
+          const locationEntry = allEntries.find(e => e.sys.id === fields.location.sys.id);
+
+          if (locationEntry?.fields) {
+            const geoName = locationEntry.fields.geolocation || '';
+            const islandRef = locationEntry.fields.island;
+
+            if (islandRef?.sys?.id) {
+              const islandEntry = allEntries.find(e => e.sys.id === islandRef.sys.id);
+              let islandName = islandEntry?.fields?.island || 'Unknown island';
+
+              locationText = `${geoName}, ${islandName}`;
+              islandText = islandName;
+            } else if (geoName) {
+              locationText = geoName;
+            }
           }
         }
-        const externalUrl = fields.externalUrl;
 
-        // Define activeFilters globally
-        const activeFilters = {
-          location: new Set(),
-          type: new Set()
-        };
+        const safeIslandText = typeof islandText === 'string' ? islandText.toLowerCase() : 'unknown';
 
-        // Apply filters based on current active sets
-        function applyFilters() {
-          const items = document.querySelectorAll('.archive-item');
-          items.forEach(item => {
-            const matchesLocation =
-              activeFilters.location.size === 0 || activeFilters.location.has(item.dataset.location?.toLowerCase());
-            const matchesType =
-              activeFilters.type.size === 0 || activeFilters.type.has(item.dataset.type?.toLowerCase());
-            item.style.display = (matchesLocation && matchesType) ? 'block' : 'none';
-          });
+        // --- Thumbnail Image Logic for Archive Preview Cards ---
+        let imageUrl = 'https://via.placeholder.com/300x200?text=No+Image'; // Default placeholder
+        let imageAlt = `${title} - No Image`;
+
+        // Priority 1: Check for 'image' field (assuming this is your general media field for previews)
+        if (fields.media?.sys?.id) {
+          const mediaAsset = assetsMap[fields.media.sys.id];
+          if (mediaAsset) {
+            imageUrl = mediaAsset.url;
+            imageAlt = mediaAsset.description || title;
+          }
         }
-
-        // Add toggle behavior to filter buttons
-        document.querySelectorAll('.filter-tags button').forEach(button => {
-          button.addEventListener('click', () => {
-            const type = button.dataset.filterType;
-            const value = button.dataset.value.toLowerCase();
-            if (!activeFilters[type]) return;
-            // Toggle filter on/off
-            if (activeFilters[type].has(value)) {
-              activeFilters[type].delete(value);
-              button.classList.remove('active-filter');
-            } else {
-              activeFilters[type].add(value);
-              button.classList.add('active-filter');
-            }
-            applyFilters();
-          });
-        });
-
-        // Reset button
-        function resetFilters() {
-          Object.keys(activeFilters).forEach(type => activeFilters[type].clear());
-          document.querySelectorAll('.archive-item').forEach(item => {
-            item.style.display = 'block';
-          });
-          document.querySelectorAll('.filter-tags button').forEach(button => {
-            button.classList.remove('active-filter');
-          });
+        // Priority 2: If no 'image', check for 'thumbnailImage'
+        else if (fields.thumbnailImage?.sys?.id) {
+          const thumbAsset = assetsMap[fields.thumbnailImage.sys.id];
+          if (thumbAsset) {
+            imageUrl = thumbAsset.url;
+            imageAlt = thumbAsset.description || title;
+          }
         }
-        let linkTarget = '';
-        let linkHref = '';
-
-        if (externalUrl) {
-          linkHref = externalUrl;
-          linkTarget = '_blank';
-        } else {
-          linkHref = `entry.html?id=${item.sys.id}`;
-          linkTarget = '_self';
-        }
+        // --- End Thumbnail Image Logic ---
 
         const div = document.createElement('div');
         div.className = 'archive-item';
         div.setAttribute('data-title', title.toLowerCase());
         div.setAttribute('data-date', date);
-        div.setAttribute('data-location', fields.island || 'unknown');
+        div.setAttribute('data-location', safeIslandText);
         div.setAttribute('data-type', fields.fileType || 'unknown');
 
-
         div.innerHTML = `
-  <a href="${linkHref}" target="${linkTarget}">
-    <img src="${imageUrl}" alt="${title}">
-    <div class="item-text">
-      <strong>${title}</strong><br/>
-      ${location}<br/>
-      ${date}
-    </div>
-  </a>
-`;
-        function sortItems(by, direction) {
-          const grid = document.querySelector('.archive-grid');
-          const items = Array.from(grid.children);
-
-          items.sort((a, b) => {
-            const valA = a.dataset[by];
-            const valB = b.dataset[by];
-
-            if (by === 'date') {
-              return direction === 'asc' ? valA - valB : valB - valA;
-            } else {
-              return direction === 'asc'
-                ? valA.localeCompare(valB)
-                : valB.localeCompare(valA);
-            }
-          });
-
-          // Re-append sorted items
-          items.forEach(item => grid.appendChild(item));
-        }
-
-        document.getElementById('sort-date').addEventListener('change', e => {
-          if (e.target.value) sortItems('date', e.target.value);
-        });
-        document.getElementById('sort-name').addEventListener('change', e => {
-          if (e.target.value) sortItems('title', e.target.value);
-        });
-
-        document.querySelectorAll('.filter-tags button').forEach(button => {
-          button.addEventListener('click', () => {
-
-          });
-        });
+          <a href="/entry.html?id=${item.sys.id}">
+            <img src="${imageUrl}" alt="${imageAlt}">
+            <div class="item-text">
+              <strong>${title}</strong><br />
+              ${locationText}<br/>
+              ${date}
+            </div>
+          </a>
+        `;
 
         grid.appendChild(div);
-
       });
+
+      // FILTER HANDLERS
+      function applyFilters() {
+        const items = document.querySelectorAll('.archive-item');
+        items.forEach(item => {
+          const matchesLocation = activeFilters.location.size === 0 || activeFilters.location.has(item.dataset.location);
+          const matchesType = activeFilters.type.size === 0 || activeFilters.type.has(item.dataset.type);
+          item.style.display = (matchesLocation && matchesType) ? 'block' : 'none';
+        });
+      }
+
+      document.querySelectorAll('.filter-tags button').forEach(button => {
+        button.addEventListener('click', () => {
+          const type = button.dataset.filterType;
+          const value = button.dataset.value.toLowerCase();
+          if (!activeFilters[type]) return;
+
+          if (activeFilters[type].has(value)) {
+            activeFilters[type].delete(value);
+            button.classList.remove('active-filter');
+          } else {
+            activeFilters[type].add(value);
+            button.classList.add('active-filter');
+          }
+          applyFilters();
+        });
+      });
+
+      // SORTING
+      function sortItems(by, direction) {
+        const items = Array.from(grid.children);
+        items.sort((a, b) => {
+          const valA = a.dataset[by];
+          const valB = b.dataset[by];
+          if (by === 'date') {
+            return direction === 'asc' ? valA - valB : valB - valA;
+          } else {
+            return direction === 'asc'
+              ? valA.localeCompare(valB)
+              : valB.localeCompare(valA);
+          }
+        });
+        items.forEach(item => grid.appendChild(item));
+      }
+
+      document.getElementById('sort-date').addEventListener('change', e => {
+        if (e.target.value) sortItems('date', e.target.value);
+      });
+      document.getElementById('sort-name').addEventListener('change', e => {
+        if (e.target.value) sortItems('title', e.target.value);
+      });
+
+      // SEARCH
+      const searchInput = document.getElementById('search-input');
+      function performSearch() {
+        const query = searchInput.value.trim().toLowerCase();
+        const items = document.querySelectorAll('.archive-item');
+        items.forEach(item => {
+          const title = item.dataset.title || '';
+          item.style.display = title.includes(query) ? 'block' : 'none';
+        });
+      }
+      searchInput.addEventListener('input', performSearch);
+
+      // RESET FILTERS
+      function resetFilters() {
+        Object.keys(activeFilters).forEach(type => activeFilters[type].clear());
+        document.querySelectorAll('.archive-item').forEach(item => {
+          item.style.display = 'block';
+        });
+        document.querySelectorAll('.filter-tags button').forEach(button => {
+          button.classList.remove('active-filter');
+        });
+      }
+      // You'll likely need a button to call resetFilters, e.g.:
+      // document.getElementById('reset-filters-button').addEventListener('click', resetFilters);
     })
     .catch(error => {
       console.error('Contentful error:', error);
     });
-
-
-  // After all items are appended to the grid
-  const searchInput = document.getElementById('search-input');
-
-  function performSearch() {
-    const query = searchInput.value.trim().toLowerCase();
-    const items = document.querySelectorAll('.archive-item');
-    items.forEach(item => {
-      const title = item.dataset.title || '';
-      item.style.display = title.includes(query) ? 'block' : 'none';
-    });
-  }
-
-  searchInput.addEventListener('input', performSearch);
-  function resetFilters() {
-    document.querySelectorAll('.archive-item').forEach(item => {
-      item.style.display = 'block';
-    });
-  }
-
 </script>
 </body>
 

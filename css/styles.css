@@ -10,7 +10,6 @@
   font-family: "PTMono";
   src: url('../fonts/PTMono-Regular.ttf') format('truetype');
 }
-
 * {
   margin: 0;
   padding: 0;
@@ -155,7 +154,6 @@ a:visited {
 .map-container {
   flex: 1;
   overflow: hidden;
-  border: 2px solid #1E1E1E;
   border-radius: 25px;
   max-width: 1200px;
   max-height: 100%;
@@ -167,7 +165,7 @@ a:visited {
 
 .mapboxgl-popup-content {
     background-color: #f7f7f7;
-    font-family: PTMono;
+    font-family: PT Mono;
     padding: 5px 10px !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
     border: 2px solid #9C321F;
@@ -289,9 +287,10 @@ a:visited {
   height: 100%;
   width: auto;
   min-width: 100%;
-  background: rgba(26, 90, 140, 0.40); /* or transparent */
-  z-index: 4; /* higher than map but lower than modal windows */
-  display: none;
+  background: rgba(26, 90, 140, 0.40);
+  z-index: 4;
+  /* Change display to flex so it's ready to be shown */
+  display: flex; 
   flex-direction: column;
   overflow: auto;
   padding: 2rem;
@@ -301,7 +300,7 @@ a:visited {
 
 
 /* Hidden by default */
-.hidden {
+#archive-overlay.hidden {
   display: none;
 }
 

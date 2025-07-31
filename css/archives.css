@@ -10,14 +10,14 @@ body {
 h1,
 h2,
 h3 {
-  font-family: "OdibeeSans";
+  font-family: "OdibeeSans", sans-serif;
   color: white;
   font-size: 30px;
 }
 
 /* ===== Header & Navigation ===== */
 .site-header a {
-  font-family: "OdibeeSans";
+  font-family: "OdibeeSans", sans-serif;
   text-decoration: none;
   color: white;
 }
@@ -96,7 +96,7 @@ h3 {
   padding: 10px;
   cursor: pointer;
   font-size: 0.9rem;
-  font-family: "PTMono";
+  font-family: "PTMono", monospace;
 }
 
 /* ===== Sidebar Filters ===== */
@@ -121,7 +121,7 @@ h3 {
   cursor: pointer;
   color: white;
   font-size: 0.9rem;
-  font-family: "PTMono";
+  font-family: "PTMono", monospace;
 }
 
 .filters h2 {
@@ -150,7 +150,7 @@ input[type="text"] {
   padding: 0.4rem 0.8rem;
   cursor: pointer;
   font-size: 0.9rem;
-  font-family: "PTMono";
+  font-family: "PTMono", monospace;
 }
 
 .filter-tags button.active-filter {
@@ -191,7 +191,7 @@ input[type="text"] {
 }
 
 .archive-item .item-text strong {
-  font-family: "OdibeeSans";
+  font-family: "OdibeeSans", sans-serif;
   font-size: 20px;
   /* Optional: adjust size */
   text-transform: uppercase;

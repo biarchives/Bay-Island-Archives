@@ -47,7 +47,7 @@
           <div id="archive-buttons"> </div>
         </div>
         <!-- Archive Overlay -->
-        <div id="archive-overlay" class="overlay hidden">
+        <div id="archive-overlay" class="hidden">
           <div class="overlay-content">
             <div id="archive-previews"></div>
             <!-- JS will populate this with archive previews -->
@@ -89,19 +89,56 @@
 <script>
   const spaceId = 'yp5hut9gr3i4';
   const accessToken = '6cmQ6BIqhbITci25VJRJxasRNDvkKb_74mYDBAKfPdY';
-  const contentTypeId = 'archivePage';
+  // Use both content types to ensure all entries are fetched
+  const contentTypes = ['archivePage', 'singleEntry'];
 
+  let allEntries = [];
+  let allRelatedEntries = [];
+  let allAssets = [];
   let islandCounts = {};
   let locationCounts = {};
   let lastSelectedIsland = null;
-  let allEntries = [];
 
-  async function fetchEntries() {
-    const res = await fetch(`https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&content_type=${contentTypeId}&include=1`);
-    const data = await res.json();
-    // Store assets for lookup
-    window.assets = data.includes?.Asset || [];
-    return data.items;
+  async function fetchAllEntries() {
+    const responses = await Promise.all(
+      contentTypes.map(type =>
+        fetch(`https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&content_type=${type}&include=2`)
+          .then(res => res.json())
+      )
+    );
+
+    let allItems = [];
+    responses.forEach(data => {
+      allItems.push(...(data.items || []));
+      allRelatedEntries.push(...(data.includes?.Entry || []));
+      allAssets.push(...(data.includes?.Asset || []));
+    });
+
+    return allItems;
+  }
+
+  function resolveLocationAndIsland(entry) {
+    let locationName = 'unknown location';
+    let islandName = 'unknown island';
+    let safeIslandText = 'unknown';
+
+    if (entry.fields.location?.sys?.id) {
+      const locationEntry = allRelatedEntries.find(e => e.sys.id === entry.fields.location.sys.id);
+
+      if (locationEntry?.fields) {
+        locationName = locationEntry.fields.geolocation || 'unknown location';
+        const islandRef = locationEntry.fields.island;
+
+        if (islandRef?.sys?.id) {
+          const islandEntry = allRelatedEntries.find(e => e.sys.id === islandRef.sys.id);
+          islandName = islandEntry?.fields?.island || 'unknown island';
+          safeIslandText = islandName.toLowerCase();
+        } else if (locationName) {
+          safeIslandText = locationName.toLowerCase();
+        }
+      }
+    }
+    return { locationName, islandName, safeIslandText };
   }
 
   function groupEntries(entries) {
@@ -109,54 +146,82 @@
     const locationCounts = {};
 
     entries.forEach(entry => {
-      const island = entry.fields.island?.toLowerCase().trim();
-      const location = entry.fields.location?.toLowerCase().trim();
-      const type = entry.fields.typeOfEntry?.toLowerCase();
+      const { locationName, safeIslandText } = resolveLocationAndIsland(entry);
 
-      if (!islandCounts[island]) islandCounts[island] = { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
-      if (!locationCounts[location]) locationCounts[location] = { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+      // Use locationName as key for locationCounts
+      if (!locationCounts[locationName.toLowerCase()]) {
+        locationCounts[locationName.toLowerCase()] = { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+      }
 
-      islandCounts[island].total++;
-      locationCounts[location].total++;
+      // Use safeIslandText as key for islandCounts
+      if (!islandCounts[safeIslandText]) {
+        islandCounts[safeIslandText] = { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+      }
 
-      if (type && islandCounts[island][type] !== undefined) islandCounts[island][type]++;
-      if (type && locationCounts[location][type] !== undefined) locationCounts[location][type]++;
+      const type = entry.fields.fileType?.toLowerCase() || 'unknown';
+
+      islandCounts[safeIslandText].total++;
+      locationCounts[locationName.toLowerCase()].total++;
+
+      if (type && islandCounts[safeIslandText][type] !== undefined) {
+        islandCounts[safeIslandText][type]++;
+      }
+      if (type && locationCounts[locationName.toLowerCase()][type] !== undefined) {
+        locationCounts[locationName.toLowerCase()][type]++;
+      }
     });
 
     return { islandCounts, locationCounts };
   }
 
-  function renderPreviewItems(filterFn) {
+  function renderPreviewItems(entries) {
     const previewContainer = document.getElementById('archive-previews');
-    previewContainer.innerHTML = ''; // Clear previous previews
+    previewContainer.innerHTML = '';
 
-    const filtered = allEntries.filter(filterFn);
-
-    if (filtered.length === 0) {
+    if (entries.length === 0) {
       previewContainer.innerHTML = '<p>No entries found.</p>';
       return;
     }
 
-    filtered.slice(0, 6).forEach(entry => {
-      const title = entry.fields.title || 'Untitled';
-      const id = entry.sys.id;
-      let img = 'https://via.placeholder.com/300x200';
-      if (entry.fields.thumbnail && entry.fields.thumbnail.sys) {
-        const imageId = entry.fields.thumbnail.sys.id;
-        const asset = window.assets.find(a => a.sys.id === imageId);
-        if (asset && asset.fields?.file?.url) {
-          img = `https:${asset.fields.file.url}`;
+    entries.forEach(item => {
+      const fields = item.fields;
+      const title = fields.title || 'Untitled';
+      const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown year';
+
+      const { locationName, islandName } = resolveLocationAndIsland(item);
+      const locationText = `${locationName}, ${islandName}`;
+
+      let imageUrl = 'https://via.placeholder.com/300x200?text=No+Image';
+
+      // Thumbnail Image Logic: Prioritize media, then thumbnailImage, then imageGallery
+      if (fields.media?.sys?.id) {
+        const mediaAsset = allAssets.find(a => a.sys.id === fields.media.sys.id);
+        if (mediaAsset?.fields?.file?.url && mediaAsset.fields.file.contentType.startsWith('image/')) {
+          imageUrl = `https:${mediaAsset.fields.file.url}`;
+        }
+      } else if (fields.thumbnailImage?.sys?.id) {
+        const thumbAsset = allAssets.find(a => a.sys.id === fields.thumbnailImage.sys.id);
+        if (thumbAsset?.fields?.file?.url) {
+          imageUrl = `https:${thumbAsset.fields.file.url}`;
+        }
+      } else if (fields.imageGallery?.length) {
+        const firstGalleryImage = allAssets.find(a => a.sys.id === fields.imageGallery[0].sys.id);
+        if (firstGalleryImage?.fields?.file?.url) {
+          imageUrl = `https:${firstGalleryImage.fields.file.url}`;
         }
       }
 
-      const previewEl = document.createElement('a');
-      previewEl.href = `entry.html?id=${id}`;
-      previewEl.className = 'preview-item';
-      previewEl.innerHTML = `
-        <div class="thumb" style="background-image: url('${img}')"></div>
-        <p>${title}</p>
+      const cardLink = document.createElement('a');
+      cardLink.href = `entry.html?id=${item.sys.id}`;
+      cardLink.className = 'archive-card';
+      cardLink.innerHTML = `
+        <img src="${imageUrl}" alt="${title}" />
+        <div class="card-text">
+          <h3>${title}</h3>
+          <p>${date} — ${locationText}</p>
+        </div>
       `;
-      previewContainer.appendChild(previewEl);
+      previewContainer.appendChild(cardLink);
     });
   }
 
@@ -172,11 +237,38 @@
   map.addControl(new mapboxgl.NavigationControl());
   map.scrollZoom.disable();
 
+  function attachButtonListeners(selectedName, type) {
+    const buttons = document.querySelectorAll('#archive-buttons button');
+    buttons.forEach(button => {
+      button.addEventListener('click', () => {
+        const filterType = button.dataset.filterType;
+        let filteredEntries = [];
+
+        if (type === 'island') {
+          filteredEntries = allEntries.filter(entry => {
+            const { safeIslandText } = resolveLocationAndIsland(entry);
+            const matchesIsland = safeIslandText === selectedName;
+            const matchesType = filterType === 'all' || (entry.fields.fileType?.toLowerCase() === filterType);
+            return matchesIsland && matchesType;
+          });
+        } else if (type === 'location') {
+          filteredEntries = allEntries.filter(entry => {
+            const { locationName } = resolveLocationAndIsland(entry);
+            const matchesLocation = locationName.toLowerCase() === selectedName;
+            const matchesType = filterType === 'all' || (entry.fields.fileType?.toLowerCase() === filterType);
+            return matchesLocation && matchesType;
+          });
+        }
+
+        renderPreviewItems(filteredEntries);
+        document.getElementById('archive-overlay').classList.remove('hidden');
+      });
+    });
+  }
+
   map.on('load', async () => {
-    allEntries = await fetchEntries();
-    const grouped = groupEntries(allEntries);
-    islandCounts = grouped.islandCounts;
-    locationCounts = grouped.locationCounts;
+    allEntries = await fetchAllEntries();
+    const { islandCounts, locationCounts } = groupEntries(allEntries);
 
     const hoverPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
 
@@ -194,71 +286,20 @@
       const island = props.island?.toLowerCase().trim();
       const stats = islandCounts[island] || { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
 
-      if (lastSelectedIsland === props.island) return;
-      lastSelectedIsland = props.island;
-
       document.getElementById('sidebar-title').textContent = props.island || "Unknown Island";
       document.getElementById('sidebar-subtitle').textContent = "";
       document.getElementById('sidebar-description').textContent = props.description || "No description available.";
 
       document.getElementById('archive-buttons').innerHTML = `
-  <button id="btn-all">View All (${stats.total})</button>
-  <button id="btn-albums">Albums (${stats.albums})</button>
-  <button id="btn-photos">Photos (${stats.photos})</button>
-  <button id="btn-videos">Videos (${stats.videos})</button>
-  <button id="btn-audio">Audio (${stats.audio})</button>
-  <button id="btn-text">Text (${stats.text})</button>
-`;
-
-
+        <button id="btn-all" data-filter-type="all">View All (${stats.total})</button>
+        <button id="btn-albums" data-filter-type="albums">Albums (${stats.albums})</button>
+        <button id="btn-photos" data-filter-type="photos">Photos (${stats.photos})</button>
+        <button id="btn-videos" data-filter-type="videos">Videos (${stats.videos})</button>
+        <button id="btn-audio" data-filter-type="audio">Audio (${stats.audio})</button>
+        <button id="btn-text" data-filter-type="text">Text (${stats.text})</button>
+      `;
       document.getElementById('sidebar').classList.remove('hidden');
-
-      // Attach click listeners
-      document.getElementById('btn-all').addEventListener('click', () => {
-        const filtered = allEntries.filter(entry => entry.fields.island?.toLowerCase().trim() === island);
-        showOverlayForIsland(filtered);
-      });
-
-      document.getElementById('btn-albums').addEventListener('click', () => {
-        const filtered = allEntries.filter(entry =>
-          entry.fields.island?.toLowerCase().trim() === island &&
-          entry.fields.typeOfEntry?.toLowerCase() === 'albums'
-        );
-        showOverlayForIsland(filtered);
-      });
-
-      document.getElementById('btn-photos').addEventListener('click', () => {
-        const filtered = allEntries.filter(entry =>
-          entry.fields.island?.toLowerCase().trim() === island &&
-          entry.fields.typeOfEntry?.toLowerCase() === 'photos'
-        );
-        showOverlayForIsland(filtered);
-      });
-
-      document.getElementById('btn-videos').addEventListener('click', () => {
-        const filtered = allEntries.filter(entry =>
-          entry.fields.island?.toLowerCase().trim() === island &&
-          entry.fields.typeOfEntry?.toLowerCase() === 'videos'
-        );
-        showOverlayForIsland(filtered);
-      });
-
-      document.getElementById('btn-audio').addEventListener('click', () => {
-        const filtered = allEntries.filter(entry =>
-          entry.fields.island?.toLowerCase().trim() === island &&
-          entry.fields.typeOfEntry?.toLowerCase() === 'audio'
-        );
-        showOverlayForIsland(filtered);
-      });
-
-      document.getElementById('btn-text').addEventListener('click', () => {
-        const filtered = allEntries.filter(entry =>
-          entry.fields.island?.toLowerCase().trim() === island &&
-          entry.fields.typeOfEntry?.toLowerCase() === 'text'
-        );
-        showOverlayForIsland(filtered);
-      });
-
+      attachButtonListeners(island, 'island');
     });
 
     map.on('click', 'biarchives-geolocations', (e) => {
@@ -271,127 +312,24 @@
       document.getElementById('sidebar-description').textContent = props.description || "No description available.";
 
       document.getElementById('archive-buttons').innerHTML = `
-  <button id="btn-all">View All (${stats.total})</button>
-  <button id="btn-albums">Albums (${stats.albums})</button>
-  <button id="btn-photos">Photos (${stats.photos})</button>
-  <button id="btn-videos">Videos (${stats.videos})</button>
-  <button id="btn-audio">Audio (${stats.audio})</button>
-  <button id="btn-text">Text (${stats.text})</button>
-`;
-
-
+        <button id="btn-all" data-filter-type="all">View All (${stats.total})</button>
+        <button id="btn-albums" data-filter-type="albums">Albums (${stats.albums})</button>
+        <button id="btn-photos" data-filter-type="photos">Photos (${stats.photos})</button>
+        <button id="btn-videos" data-filter-type="videos">Videos (${stats.videos})</button>
+        <button id="btn-audio" data-filter-type="audio">Audio (${stats.audio})</button>
+        <button id="btn-text" data-filter-type="text">Text (${stats.text})</button>
+      `;
       document.getElementById('sidebar').classList.remove('hidden');
-
-      // Attach click listeners
-      document.getElementById('btn-all').addEventListener('click', () => {
-        const filtered = allEntries.filter(entry => entry.fields.location?.toLowerCase().trim() === location);
-        showOverlayForIsland(filtered);
-      });
-
-      document.getElementById('btn-albums').addEventListener('click', () => {
-        const filtered = allEntries.filter(entry =>
-          entry.fields.location?.toLowerCase().trim() === location &&
-          entry.fields.typeOfEntry?.toLowerCase() === 'albums'
-        );
-        showOverlayForIsland(filtered);
-      });
-
-      document.getElementById('btn-photos').addEventListener('click', () => {
-        const filtered = allEntries.filter(entry =>
-          entry.fields.location?.toLowerCase().trim() === location &&
-          entry.fields.typeOfEntry?.toLowerCase() === 'photos'
-        );
-        showOverlayForIsland(filtered);
-      });
-
-      document.getElementById('btn-videos').addEventListener('click', () => {
-        const filtered = allEntries.filter(entry =>
-          entry.fields.location?.toLowerCase().trim() === location &&
-          entry.fields.typeOfEntry?.toLowerCase() === 'videos'
-        );
-        showOverlayForIsland(filtered);
-      });
-
-      document.getElementById('btn-audio').addEventListener('click', () => {
-        const filtered = allEntries.filter(entry =>
-          entry.fields.location?.toLowerCase().trim() === location &&
-          entry.fields.typeOfEntry?.toLowerCase() === 'audio'
-        );
-        showOverlayForIsland(filtered);
-      });
-
-      document.getElementById('btn-text').addEventListener('click', () => {
-        const filtered = allEntries.filter(entry =>
-          entry.fields.location?.toLowerCase().trim() === location &&
-          entry.fields.typeOfEntry?.toLowerCase() === 'text'
-        );
-        showOverlayForIsland(filtered);
-      });
+      attachButtonListeners(location, 'location');
     });
-
-    // Example: show overlay and inject archive cards
-    function showOverlayForIsland(entries) {
-      const overlay = document.getElementById('archive-overlay');
-      const container = document.getElementById('archive-previews');
-
-      container.innerHTML = ''; // Clear previous
-
-      entries.forEach(item => {
-        const fields = item.fields;
-
-        const title = fields.title || 'Untitled';
-        const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown year';
-        const location = fields.location || 'Unknown location';
-
-        // Default placeholder
-        let imageUrl = 'https://via.placeholder.com/300x200';
-        if (fields.mainImage && fields.mainImage.sys) {
-          const imageId = fields.mainImage.sys.id;
-          const asset = window.assets.find(a => a.sys.id === imageId);
-          if (asset && asset.fields?.file?.url) {
-            imageUrl = `https:${asset.fields.file.url}`;
-          }
-        }
-
-        const externalUrl = fields.externalUrl;
-
-        const cardLink = document.createElement('a');
-        cardLink.href = `entry.html?id=${item.sys.id}`;
-        cardLink.className = 'archive-card';
-
-        cardLink.innerHTML = `
-  <img src="${imageUrl}" alt="${title}" />
-  <div class="card-text">
-    <h3>${title}</h3>
-    <p>${date} — ${location}</p>
-  </div>
-`;
-
-        container.appendChild(cardLink);
-
-      });
-
-      overlay.style.display = 'flex';
-
-      overlay.classList.remove("hidden");
-    }
-
-    // Get references
-    const overlay = document.getElementById("archive-overlay");
-    const overlayContent = document.querySelector(".overlay-content");
 
     document.getElementById('back-button').addEventListener('click', () => {
       document.getElementById('sidebar').classList.add('hidden');
       document.getElementById('archive-previews').innerHTML = '';
-
       const overlay = document.getElementById('archive-overlay');
       overlay.classList.add('hidden');
-      overlay.style.display = ''; // <- This removes the inline style that keeps it visible
-
-      lastSelectedIsland = null;
+      overlay.style.display = '';
     });
-
-
   });
 </script>
 

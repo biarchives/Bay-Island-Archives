@@ -1,5 +1,14 @@
 /* styles.css */
 
+@font-face {
+  font-family: OdibeeSans;
+  src: url(fonts/OdibeeSans-Regular.ttf);
+
+  font-family: PT Mono;
+  src: url(fonts/PTMono-Regular.ttf);
+}
+
+
 /* Reset */
 * {
   margin: 0;
@@ -14,13 +23,14 @@ body {
 }
 
 .site-header a {
-  font-family: 'Odibee Sans', sans-serif;
+  font-family: OdibeeSans;
+
   text-decoration: none;
   color: inherit;
 }
 
 body {
-  font-family: 'PT Mono';
+  font-family: PT Mono;
   background-color: #F7F7F7;
   color: #000;
 }
@@ -186,7 +196,7 @@ a:visited {
 #sidebar-description {
   font-size: 15px;
   color: #F7F7F7;
-  font-family: 'PT Mono', monospace;
+  font-family: PT Mono, monospace;
   line-height: 1.6;
   margin-bottom: 24px;
 }
@@ -201,7 +211,7 @@ a:visited {
 
 #archive-buttons button {
   border-radius: 25px;
-  font-family: 'PT Mono', monospace;
+  font-family: PT Mono, monospace;
   background-color: #f1f1f1;
   color: #1E1E1E;
   padding: 8px 14px;
@@ -232,7 +242,7 @@ a:visited {
   color: #F7F7F7;
   border: none;
   font-size: 16px;
-  font-family: 'PT Mono', monospace;
+  font-family: PT Mono, monospace;
   cursor: pointer;
 }
 
@@ -286,7 +296,7 @@ a:visited {
 .archive-card {
   width: 260px;
   background-color: #f9f9f9;
-  border: 1px solid #ddd;
+  border: 2px solid #1e1e1e;
   border-radius: 8px;
   padding: 1rem;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
@@ -387,7 +397,7 @@ a:visited {
 
 .newsletter-form button {
   background-color: #F7F7F7;
-  font-family: 'PT Mono', monospace;
+  font-family: PT Mono;
   font-weight: 600;
   color: #1A5A8C;
   padding: 10px 20px;

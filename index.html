@@ -7,6 +7,9 @@
   <title>Bay Islands Archives</title>
   <link rel="stylesheet" href="css/styles.css" />
   <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+  <link rel="preload" href="fonts/OdibeeSans-Regular.ttf" as="font" type="font/ttf" crossorigin="anonymous">
+  <link rel="preload" href="fonts/PTMono-Regular.ttf" as="font" type="font/ttf" crossorigin="anonymous">
+
 
   <!-- Mapbox GL JS CDN -->
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
@@ -377,16 +380,16 @@
     const overlay = document.getElementById("archive-overlay");
     const overlayContent = document.querySelector(".overlay-content");
 
-  document.getElementById('back-button').addEventListener('click', () => {
-  document.getElementById('sidebar').classList.add('hidden');
-  document.getElementById('archive-previews').innerHTML = '';
+    document.getElementById('back-button').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.add('hidden');
+      document.getElementById('archive-previews').innerHTML = '';
 
-  const overlay = document.getElementById('archive-overlay');
-  overlay.classList.add('hidden');
-  overlay.style.display = ''; // <- This removes the inline style that keeps it visible
+      const overlay = document.getElementById('archive-overlay');
+      overlay.classList.add('hidden');
+      overlay.style.display = ''; // <- This removes the inline style that keeps it visible
 
-  lastSelectedIsland = null;
-});
+      lastSelectedIsland = null;
+    });
 
 
   });

@@ -19,7 +19,16 @@
 
 <body>
   <div class="page-wrapper">
-    <div id="header-placeholder"></div>
+    <header class="site-header">
+      <div class="header-content">
+        <a href="index.html" class="site-title">Bay Islands Archives</a>
+        <nav class="nav-links">
+          <a href="about.html">About</a>
+          <a href="archives.html">Archives</a>
+          <a href="contact.html">Contact</a>
+        </nav>
+      </div>
+    </header>
 
     <main class="site-main">
       <div class="main-text">
@@ -53,24 +62,31 @@
   </div>
 
   <!-- Footer -->
-  <div id="footer-placeholder"></div>
+  <footer class="site-footer">
+    <div class="footer-content">
+      <div class="footer-left">
+        <p>Preserving stories, honoring history.</p>
+        <h2>Bay Island Archives</h2>
+        <div class="footer-links">
+          <a href="about.html">About</a>
+          <a href="archives.html">Archives</a>
+          <a href="contact.html">Contact</a>
+        </div>
+      </div>
+      <div class="footer-center">
+        <form class="newsletter-form">
+          <label for="email">Stay in touch.</label>
+          <div class="newsletter-inputs">
+            <input type="email" id="email" placeholder="Enter your email" required />
+            <button type="submit">Subscribe</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </footer>
 </body>
 
 <script>
-  // Load the header
-  fetch('base/header.html')
-    .then(response => response.text())
-    .then(data => {
-      document.getElementById('header-placeholder').innerHTML = data;
-    });
-
-  // Load the footer
-  fetch('base/footer.html')
-    .then(response => response.text())
-    .then(data => {
-      document.getElementById('footer-placeholder').innerHTML = data;
-    });
-
   const spaceId = 'yp5hut9gr3i4';
   const accessToken = '6cmQ6BIqhbITci25VJRJxasRNDvkKb_74mYDBAKfPdY';
   // Use both content types to ensure all entries are fetched
@@ -246,17 +262,6 @@
 
         renderPreviewItems(filteredEntries);
         document.getElementById('archive-overlay').classList.remove('hidden');
-        document.getElementById('archive-overlay').addEventListener('click', (event) => {
-          // Check if the click happened on an <a> tag
-          if (event.target.closest('a')) {
-            event.preventDefault(); // Stop the default link behavior
-            const link = event.target.closest('a');
-            console.log('Intercepted a click on a link:', link.href);
-            console.log('This reload is happening because of an event listener on the parent element.');
-            // The line below will fix your problem
-            // window.location.href = link.href; 
-          }
-        });
       });
     });
   }

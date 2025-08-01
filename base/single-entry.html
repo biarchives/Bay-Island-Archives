@@ -1,0 +1,88 @@
+<a href="/archives.html" class="back-link">← To All Archives</a>
+
+<div class="entry-main single-entry-main">
+  <div class="entry-header">
+    <div class='entry-text-block'>
+      <h1 class="entry-title" id="entry-title"></h1>
+      <p class="entry-meta" id="entry-meta"></p>
+      <div class="entry-description" id="entry-description"></div>
+    </div>
+  </div>
+  <div id="single-media-placeholder"></div>
+</div>
+
+<div id="related-links-placeholder"></div>
+
+<script>
+  window.addEventListener('load', () => {
+    window.scrollTo(0, 0);
+  });
+
+  // Since these variables are already declared in the parent entry.html,
+  // we can use them directly without redeclaring them.
+  const contentfulUrl = `https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&sys.id=${entryId}&include=2`;
+  
+  fetch(contentfulUrl)
+    .then(res => res.json())
+    .then(data => {
+      const entry = data.items[0];
+      const fields = entry.fields;
+      const includes = data.includes;
+
+      document.title = `${fields.title || 'Untitled'} | Bay Islands Archives`;
+
+      // Helper function to resolve assets and entries
+      const assetsMap = {};
+      includes?.Asset?.forEach(asset => {
+        if (asset.sys.id && asset.fields?.file?.url) {
+          assetsMap[asset.sys.id] = {
+            url: `https:${asset.fields.file.url}`,
+            description: asset.fields.description || '',
+            contentType: asset.fields.file.contentType
+          };
+        }
+      });
+      
+      const relatedEntriesMap = {};
+      includes?.Entry?.forEach(e => {
+        relatedEntriesMap[e.sys.id] = e;
+      });
+
+      // Populate main content
+      document.getElementById('entry-title').textContent = fields.title || 'Untitled';
+      const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown Year';
+      const locationName = relatedEntriesMap[fields.location?.sys?.id]?.fields.geolocation || 'Unknown Location';
+      const islandName = relatedEntriesMap[relatedEntriesMap[fields.location?.sys?.id]?.fields.island?.sys?.id]?.fields.island || '';
+      document.getElementById('entry-meta').innerHTML = `${locationName}${islandName ? ', ' + islandName : ''}<br>${date}`;
+      if (fields.description?.content?.[0]?.content?.[0]?.value) {
+        document.getElementById('entry-description').textContent = fields.description.content[0].content[0].value;
+      }
+      
+      // Single Media Handling
+      const mediaPlaceholder = document.getElementById('single-media-placeholder');
+      let mediaHtml = '';
+      if (fields.media?.sys?.id) {
+          const mediaAsset = assetsMap[fields.media.sys.id];
+          if (mediaAsset) {
+              if (mediaAsset.contentType.startsWith('image/')) {
+                  mediaHtml = `<img src="${mediaAsset.url}" alt="${mediaAsset.description || fields.title}" />`;
+              } else if (mediaAsset.contentType.startsWith('video/')) {
+                  mediaHtml = `<video controls><source src="${mediaAsset.url}" type="${mediaAsset.contentType}"></video>`;
+              } else if (mediaAsset.contentType.startsWith('audio/')) {
+                  mediaHtml = `<audio controls><source src="${mediaAsset.url}" type="${mediaAsset.contentType}"></audio>`;
+              }
+          }
+      } else if (fields.externalUrl) {
+          // This assumes the external URL is a YouTube embed
+          mediaHtml = `<iframe src="${fields.externalUrl}" frameborder="0" allowfullscreen></iframe>`;
+      } else {
+          mediaHtml = `<img src="https://placehold.co/600x400?text=No+Media" alt="No media available" />`;
+      }
+
+      mediaPlaceholder.innerHTML = mediaHtml;
+      
+      // Related Links (you would add similar logic here)
+
+    })
+    .catch(err => console.error('Error fetching single entry:', err));
+</script>

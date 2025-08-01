@@ -212,7 +212,7 @@
       }
 
       const cardLink = document.createElement('a');
-      cardLink.href = "entry.html?id=${item.sys.id}";
+      cardLink.href = `entry.html?id=${item.sys.id}`;
       cardLink.className = 'archive-card';
       cardLink.innerHTML = `
         <img src="${imageUrl}" alt="${title}" />

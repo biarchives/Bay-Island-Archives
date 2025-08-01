@@ -1,4 +1,4 @@
-@import url('css/styles.css');
+@import url('styles.css');
 
 /* ===== Reset & Base ===== */
 body {
@@ -263,6 +263,13 @@ h3 {
 /* ==================================================================== */
 /* Gallery - Centered */
 /* ==================================================================== */
+.gallery-placeholder{
+  width: 1000px;
+  height: 400px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 .gallery-wrapper {
   display: flex;
   align-items: center;
@@ -279,11 +286,11 @@ h3 {
 
 .thumbnail-viewport {
   overflow: hidden;
-  padding: 0 px;
   flex-shrink: 0;
   /* Important: Prevents it from shrinking if wrapper is smaller */
   white-space: nowrap;
   /* Keep thumbs in a single line */
+  max-width: 100%;
 }
 
 .image-gallery {

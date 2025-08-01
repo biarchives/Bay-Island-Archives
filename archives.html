@@ -90,6 +90,7 @@
     .then(data => {
       document.getElementById('footer-placeholder').innerHTML = data;
     });
+
   const spaceId = 'yp5hut9gr3i4';
   const accessToken = '6cmQ6BIqhbITci25VJRJxasRNDvkKb_74mYDBAKfPdY';
   const contentTypes = ['archivePage', 'singleEntry'];
@@ -106,15 +107,16 @@
     )
   )
     .then(data => {
-      const [archivePage, singleEntry] = data;
-      const allItems = [...archivePage.items, ...singleEntry.items];
+      const [archivePageData, singleEntryData] = data;
+      const allItems = [...archivePageData.items, ...singleEntryData.items];
+
       const allAssets = [
-        ...(archivePage.includes?.Asset || []),
-        ...(singleEntry.includes?.Asset || [])
+        ...(archivePageData.includes?.Asset || []),
+        ...(singleEntryData.includes?.Asset || [])
       ];
       const allEntries = [
-        ...(archivePage.includes?.Entry || []),
-        ...(singleEntry.includes?.Entry || [])
+        ...(archivePageData.includes?.Entry || []),
+        ...(singleEntryData.includes?.Entry || [])
       ];
 
       const grid = document.querySelector('.archive-grid');
@@ -125,13 +127,15 @@
         if (asset.sys.id && asset.fields?.file?.url) {
           assetsMap[asset.sys.id] = {
             url: `https:${asset.fields.file.url}`,
-            description: asset.fields.description || ''
+            description: asset.fields.description || '',
+            contentType: asset.fields.file.contentType // Store contentType for filtering
           };
         }
       });
 
       allItems.forEach(item => {
         const fields = item.fields;
+        const contentTypeId = item.sys.contentType.sys.id; // Get the content type ID
         const title = fields.title || 'Untitled';
         const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown year';
 
@@ -160,34 +164,56 @@
 
         const safeIslandText = typeof islandText === 'string' ? islandText.toLowerCase() : 'unknown';
 
-        // --- Thumbnail Image Logic for Archive Preview Cards ---
+        // --- DYNAMIC THUMBNAIL AND TYPE LOGIC ---
         let imageUrl = 'https://via.placeholder.com/300x200?text=No+Image'; // Default placeholder
         let imageAlt = `${title} - No Image`;
+        let itemType = 'unknown'; // Default item type for filtering
 
-        // Priority 1: Check for 'image' field (assuming this is your general media field for previews)
-        if (fields.media?.sys?.id) {
-          const mediaAsset = assetsMap[fields.media.sys.id];
-          if (mediaAsset) {
-            imageUrl = mediaAsset.url;
-            imageAlt = mediaAsset.description || title;
-          }
-        }
-        // Priority 2: If no 'image', check for 'thumbnailImage'
-        else if (fields.thumbnailImage?.sys?.id) {
+        if (contentTypeId === 'archivePage' && fields.thumbnailImage?.sys?.id) {
+          // Logic for 'Album Entry' (archivePage)
           const thumbAsset = assetsMap[fields.thumbnailImage.sys.id];
           if (thumbAsset) {
             imageUrl = thumbAsset.url;
             imageAlt = thumbAsset.description || title;
+            if (thumbAsset.contentType.startsWith('image')) {
+              itemType = 'image';
+            }
           }
+        } else if (contentTypeId === 'singleEntry' && fields.media?.sys?.id) {
+          // Logic for 'Single Entry'
+          const mediaAsset = assetsMap[fields.media.sys.id];
+          if (mediaAsset) {
+            if (mediaAsset.contentType.startsWith('image')) {
+              imageUrl = mediaAsset.url;
+              imageAlt = mediaAsset.description || title;
+              itemType = 'image';
+            } else if (mediaAsset.contentType.startsWith('video')) {
+              // Use a placeholder for video thumbnails if a separate thumbnail isn't provided
+              imageUrl = 'https://via.placeholder.com/300x200?text=Video+Entry';
+              imageAlt = `Video: ${title}`;
+              itemType = 'video';
+            } else if (mediaAsset.contentType.startsWith('audio')) {
+              // Use a placeholder for audio thumbnails
+              imageUrl = 'https://via.placeholder.com/300x200?text=Audio+Entry';
+              imageAlt = `Audio: ${title}`;
+              itemType = 'audio';
+            }
+          }
+        } else if (contentTypeId === 'singleEntry' && fields.externalUrl) {
+          // Logic for external URL entry
+          imageUrl = 'https://via.placeholder.com/300x200?text=External+URL';
+          imageAlt = `External Link: ${title}`;
+          // Assuming most external links are videos (e.g., YouTube)
+          itemType = 'video';
         }
-        // --- End Thumbnail Image Logic ---
+        // --- END DYNAMIC THUMBNAIL AND TYPE LOGIC ---
 
         const div = document.createElement('div');
         div.className = 'archive-item';
         div.setAttribute('data-title', title.toLowerCase());
         div.setAttribute('data-date', date);
         div.setAttribute('data-location', safeIslandText);
-        div.setAttribute('data-type', fields.fileType || 'unknown');
+        div.setAttribute('data-type', itemType); // Use the dynamically determined itemType
 
         div.innerHTML = `
           <a href="entry.html?id=${item.sys.id}">
@@ -219,12 +245,30 @@
           const value = button.dataset.value.toLowerCase();
           if (!activeFilters[type]) return;
 
-          if (activeFilters[type].has(value)) {
-            activeFilters[type].delete(value);
-            button.classList.remove('active-filter');
+          // Special handling for item types with multiple values
+          if (type === 'type') {
+            const hasActiveType = Array.from(activeFilters.type).includes(value);
+            if (hasActiveType) {
+              activeFilters.type.clear();
+            } else {
+              activeFilters.type.clear();
+              activeFilters.type.add(value);
+            }
+            document.querySelectorAll('.filter-tags button[data-filter-type="type"]').forEach(btn => {
+              btn.classList.remove('active-filter');
+            });
+            if (!hasActiveType) {
+              button.classList.add('active-filter');
+            }
           } else {
-            activeFilters[type].add(value);
-            button.classList.add('active-filter');
+            // Regular toggle for other filters
+            if (activeFilters[type].has(value)) {
+              activeFilters[type].delete(value);
+              button.classList.remove('active-filter');
+            } else {
+              activeFilters[type].add(value);
+              button.classList.add('active-filter');
+            }
           }
           applyFilters();
         });

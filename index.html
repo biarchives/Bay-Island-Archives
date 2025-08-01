@@ -246,6 +246,17 @@
 
         renderPreviewItems(filteredEntries);
         document.getElementById('archive-overlay').classList.remove('hidden');
+        document.getElementById('archive-overlay').addEventListener('click', (event) => {
+          // Check if the click happened on an <a> tag
+          if (event.target.closest('a')) {
+            event.preventDefault(); // Stop the default link behavior
+            const link = event.target.closest('a');
+            console.log('Intercepted a click on a link:', link.href);
+            console.log('This reload is happening because of an event listener on the parent element.');
+            // The line below will fix your problem
+            // window.location.href = link.href; 
+          }
+        });
       });
     });
   }

@@ -196,6 +196,7 @@
       }
 
       const cardLink = document.createElement('a');
+      cardLink.href = `entry.html?id=${item.sys.id}`;
       cardLink.className = 'archive-card';
       cardLink.innerHTML = `
         <img src="${imageUrl}" alt="${title}" />
@@ -204,13 +205,6 @@
           <p>${date} — ${locationText}</p>
         </div>
       `;
-      // Instead of setting href, we use an event listener to navigate manually.
-      // This bypasses any other script that might be preventing the link's default behavior.
-      cardLink.addEventListener('click', (event) => {
-        event.preventDefault();
-        window.location.href = `entry.html?id=${item.sys.id}`;
-      });
-      
       previewContainer.appendChild(cardLink);
     });
   }

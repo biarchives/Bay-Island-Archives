@@ -6,23 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bay Islands Archives</title>
   <link rel="stylesheet" href="css/archives.css" />
-  <link rel="preload" href="fonts/OdibeeSans-Regular.ttf" as="font" type="font/ttf" crossorigin="anonymous">
-  <link rel="preload" href="fonts/PTMono-Regular.ttf" as="font" type="font/ttf" crossorigin="anonymous">
-
 </head>
 
 <body>
   <!-- Header -->
-  <header class="site-header">
-    <div class="container header-content">
-      <a href="index.html" class="site-title">Bay Islands Archives</a>
-      <nav class="nav-links">
-        <a href="about.html">About</a>
-        <a href="archives.html" class="active">Archives</a>
-        <a href="contact.html">Contact</a>
-      </nav>
-    </div>
-  </header>
+  <div id="header-placeholder"></div>
 
   <!-- Main -->
   <main class="site-main">
@@ -85,31 +73,23 @@
   </main>
 
   <!-- Footer -->
-  <footer class="site-footer">
-    <div class="container footer-content">
-      <div class="footer-left">
-        <p>Preserving stories, honoring history.</p>
-        <h2>Bay Island Archives</h2>
-        <div class="footer-links">
-          <a href="about.html">About</a>
-          <a href="archives.html">Archives</a>
-          <a href="contact.html">Contact</a>
-        </div>
-      </div>
-      <div class="footer-center">
-        <form class="newsletter-form">
-          <label for="email">Stay in touch.</label>
-          <div class="newsletter-inputs">
-            <input type="email" id="email" placeholder="Enter your email" required />
-            <button type="submit">Subscribe</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </footer>
+  <div id="footer-placeholder"></div>
 </body>
 
 <script>
+  // Load the header
+  fetch('base/header.html')
+    .then(response => response.text())
+    .then(data => {
+      document.getElementById('header-placeholder').innerHTML = data;
+    });
+
+  // Load the footer
+  fetch('base/footer.html')
+    .then(response => response.text())
+    .then(data => {
+      document.getElementById('footer-placeholder').innerHTML = data;
+    });
   const spaceId = 'yp5hut9gr3i4';
   const accessToken = '6cmQ6BIqhbITci25VJRJxasRNDvkKb_74mYDBAKfPdY';
   const contentTypes = ['archivePage', 'singleEntry'];
@@ -210,7 +190,7 @@
         div.setAttribute('data-type', fields.fileType || 'unknown');
 
         div.innerHTML = `
-          <a href="entry.html?id=${item.sys.id}">
+          <a href="/entry.html?id=${item.sys.id}">
             <img src="${imageUrl}" alt="${imageAlt}">
             <div class="item-text">
               <strong>${title}</strong><br />
@@ -303,6 +283,7 @@
       console.error('Contentful error:', error);
     });
 </script>
+
 </body>
 
 </html>

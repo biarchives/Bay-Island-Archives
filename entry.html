@@ -4,317 +4,498 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bay Islands Archives</title>
-  <link rel="stylesheet" href="css/styles.css" />
-  <link rel="icon" href="/favicon.ico" type="image/x-icon" />
-  <link rel="preload" href="fonts/OdibeeSans-Regular.ttf" as="font" type="font/ttf" crossorigin="anonymous">
-  <link rel="preload" href="fonts/PTMono-Regular.ttf" as="font" type="font/ttf" crossorigin="anonymous">
-
-
-  <!-- Mapbox GL JS CDN -->
-  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
-  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
-
+  <title id="page-title">BI Stories | Archive Entry</title>
+  <link rel="stylesheet" href="css/entry.css" />
 </head>
 
 <body>
-  <div class="page-wrapper">
-    <div id="header-placeholder"></div>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="header-content">
+      <a href="index.html" class="site-title">Bay Islands Archives</a>
+      <nav class="nav-links">
+        <a href="/about.html">About</a>
+        <a href="/archives.html">Archives</a>
+        <a href="/contact.html">Contact</a>
+      </nav>
+    </div>
+  </header>
 
-    <main class="site-main">
-      <div class="main-text">
-        <h1>Explore the history of the Bay Islands</h1>
-        <p>Examine the rich history and diverse cultures of the Bay Islands through our interactive map and archives.
-        </p>
-        <p>Click on an island or location to discover stories, photos, and more.</p>
-      </div>
-      <div class="main-content">
-        <div id="sidebar" class="hidden">
-          <button id="back-button">← Back to Map</button>
-          <h2 id="sidebar-title"></h2>
-          <h3 id="sidebar-subtitle"></h3>
-          <p id="sidebar-description"></p>
-          <h3>Explore Archives</h3>
-          <div id="archive-buttons"> </div>
-        </div>
-        <!-- Archive Overlay -->
-        <div id="archive-overlay" class="hidden">
-          <div class="overlay-content">
-            <div id="archive-previews"></div>
-            <!-- JS will populate this with archive previews -->
-          </div>
-        </div>
-
-        <div id="map" class="map-container"></div>
-      </div>
-
-
-    </main>
-  </div>
+  <!-- Main -->
+  <main class="site-main">
+    <section class="entry-content" id="entry-detail">
+    </section>
+  </main>
 
   <!-- Footer -->
-  <div id="footer-placeholder"></div>
-</body>
-
-<script>
-  // Load the header
-  fetch('base/header.html')
-    .then(response => response.text())
-    .then(data => {
-      document.getElementById('header-placeholder').innerHTML = data;
-    });
-
-  // Load the footer
-  fetch('base/footer.html')
-    .then(response => response.text())
-    .then(data => {
-      document.getElementById('footer-placeholder').innerHTML = data;
-    });
-
-  const spaceId = 'yp5hut9gr3i4';
-  const accessToken = '6cmQ6BIqhbITci25VJRJxasRNDvkKb_74mYDBAKfPdY';
-  // Use both content types to ensure all entries are fetched
-  const contentTypes = ['archivePage', 'singleEntry'];
-
-  let allEntries = [];
-  let allRelatedEntries = [];
-  let allAssets = [];
-  let islandCounts = {};
-  let locationCounts = {};
-  let lastSelectedIsland = null;
-
-  async function fetchAllEntries() {
-    const responses = await Promise.all(
-      contentTypes.map(type =>
-        fetch(`https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&content_type=${type}&include=2`)
-          .then(res => res.json())
-      )
-    );
-
-    let allItems = [];
-    responses.forEach(data => {
-      allItems.push(...(data.items || []));
-      allRelatedEntries.push(...(data.includes?.Entry || []));
-      allAssets.push(...(data.includes?.Asset || []));
-    });
-
-    return allItems;
-  }
-
-  function resolveLocationAndIsland(entry) {
-    let locationName = 'unknown location';
-    let islandName = 'unknown island';
-    let safeIslandText = 'unknown';
-
-    if (entry.fields.location?.sys?.id) {
-      const locationEntry = allRelatedEntries.find(e => e.sys.id === entry.fields.location.sys.id);
-
-      if (locationEntry?.fields) {
-        locationName = locationEntry.fields.geolocation || 'unknown location';
-        const islandRef = locationEntry.fields.island;
-
-        if (islandRef?.sys?.id) {
-          const islandEntry = allRelatedEntries.find(e => e.sys.id === islandRef.sys.id);
-          islandName = islandEntry?.fields?.island || 'unknown island';
-          safeIslandText = islandName.toLowerCase();
-        } else if (locationName) {
-          safeIslandText = locationName.toLowerCase();
-        }
-      }
-    }
-    return { locationName, islandName, safeIslandText };
-  }
-
-  function groupEntries(entries) {
-    const islandCounts = {};
-    const locationCounts = {};
-
-    entries.forEach(entry => {
-      const { locationName, safeIslandText } = resolveLocationAndIsland(entry);
-
-      // Use locationName as key for locationCounts
-      if (!locationCounts[locationName.toLowerCase()]) {
-        locationCounts[locationName.toLowerCase()] = { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
-      }
-
-      // Use safeIslandText as key for islandCounts
-      if (!islandCounts[safeIslandText]) {
-        islandCounts[safeIslandText] = { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
-      }
-
-      const type = entry.fields.fileType?.toLowerCase() || 'unknown';
-
-      islandCounts[safeIslandText].total++;
-      locationCounts[locationName.toLowerCase()].total++;
-
-      if (type && islandCounts[safeIslandText][type] !== undefined) {
-        islandCounts[safeIslandText][type]++;
-      }
-      if (type && locationCounts[locationName.toLowerCase()][type] !== undefined) {
-        locationCounts[locationName.toLowerCase()][type]++;
-      }
-    });
-
-    return { islandCounts, locationCounts };
-  }
-
-  function renderPreviewItems(entries) {
-    const previewContainer = document.getElementById('archive-previews');
-    previewContainer.innerHTML = '';
-
-    if (entries.length === 0) {
-      previewContainer.innerHTML = '<p>No entries found.</p>';
-      return;
-    }
-
-    entries.forEach(item => {
-      const fields = item.fields;
-      const title = fields.title || 'Untitled';
-      const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown year';
-
-      const { locationName, islandName } = resolveLocationAndIsland(item);
-      const locationText = `${locationName}, ${islandName}`;
-
-      let imageUrl = 'https://via.placeholder.com/300x200?text=No+Image';
-
-      // Thumbnail Image Logic: Prioritize media, then thumbnailImage, then imageGallery
-      if (fields.media?.sys?.id) {
-        const mediaAsset = allAssets.find(a => a.sys.id === fields.media.sys.id);
-        if (mediaAsset?.fields?.file?.url && mediaAsset.fields.file.contentType.startsWith('image/')) {
-          imageUrl = `https:${mediaAsset.fields.file.url}`;
-        }
-      } else if (fields.thumbnailImage?.sys?.id) {
-        const thumbAsset = allAssets.find(a => a.sys.id === fields.thumbnailImage.sys.id);
-        if (thumbAsset?.fields?.file?.url) {
-          imageUrl = `https:${thumbAsset.fields.file.url}`;
-        }
-      } else if (fields.imageGallery?.length) {
-        const firstGalleryImage = allAssets.find(a => a.sys.id === fields.imageGallery[0].sys.id);
-        if (firstGalleryImage?.fields?.file?.url) {
-          imageUrl = `https:${firstGalleryImage.fields.file.url}`;
-        }
-      }
-
-      const cardLink = document.createElement('a');
-      cardLink.href = `entry.html?id=${item.sys.id}`;
-      cardLink.className = 'archive-card';
-      cardLink.innerHTML = `
-        <img src="${imageUrl}" alt="${title}" />
-        <div class="card-text">
-          <h3>${title}</h3>
-          <p>${date} — ${locationText}</p>
+  <footer class="site-footer">
+    <div class="footer-content">
+      <div class="footer-left">
+        <p>Preserving stories, honoring history.</p>
+        <h2>Bay Islands Archives</h2>
+        <div class="footer-links">
+          <a href="./about.html">About</a>
+          <a href="./archives.html">Archives</a>
+          <a href="./contact.html">Contact</a>
         </div>
-      `;
-      previewContainer.appendChild(cardLink);
+      </div>
+      <div class="footer-center">
+        <form class="newsletter-form">
+          <label for="email">Stay in touch.</label>
+          <div class="newsletter-inputs">
+            <input type="email" id="email" placeholder="Enter your email" required />
+            <button type="submit">Subscribe</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </footer>
+
+  <div class="fullscreen-overlay" id="fullscreen-overlay">
+    <div class="fullscreen-modal">
+      <button class="fullscreen-close" id="fullscreen-close">&times;</button>
+      <img src="" alt="Fullscreen Image" id="fullscreen-image" />
+      <p class="fullscreen-caption" id="fullscreen-caption"></p>
+      <button class="fullscreen-nav-arrow left" id="fullscreen-prev">&larr;</button>
+      <button class="fullscreen-nav-arrow right" id="fullscreen-next">&rarr;</button>
+    </div>
+  </div>
+
+  <!-- Script -->
+ <script>
+    window.addEventListener('load', () => {
+      window.scrollTo(0, 0);
     });
-  }
 
-  mapboxgl.accessToken = 'pk.eyJ1IjoiYmlhcmNoaXZlcyIsImEiOiJjbWRtZDRmMjIxa3JlMmpxMWIyM2ZleHVoIn0.qAlCMwvS56lvr7AbC2Iuug';
+    const spaceId = 'yp5hut9gr3i4';
+    const accessToken = '6cmQ6BIqhbITci25VJRJxasRNDvkKb_74mYDBAKfPdY';
+    const entryId = new URLSearchParams(window.location.search).get('id');
+    const url = `https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&sys.id=${entryId}&include=2`;
 
-  const map = new mapboxgl.Map({
-    container: 'map',
-    style: 'mapbox://styles/biarchives/cmdop5iqf01vp01sa2ol5fds9',
-    center: [-86.57845621839104, 16.29814507230684],
-    zoom: 9
-  });
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        const entry = data.items[0];
+        const fields = entry.fields;
+        const includes = data.includes;
 
-  map.addControl(new mapboxgl.NavigationControl());
-  map.scrollZoom.disable();
+        const title = fields.title || 'Untitled';
+        // --- ADDED THIS LINE ---
+        document.title = `${title} | Bay Islands Archives`; 
+        // -----------------------
 
-  function attachButtonListeners(selectedName, type) {
-    const buttons = document.querySelectorAll('#archive-buttons button');
-    buttons.forEach(button => {
-      button.addEventListener('click', () => {
-        const filterType = button.dataset.filterType;
-        let filteredEntries = [];
+        const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown Year';
+        let locationText = 'Unknown location';
 
-        if (type === 'island') {
-          filteredEntries = allEntries.filter(entry => {
-            const { safeIslandText } = resolveLocationAndIsland(entry);
-            const matchesIsland = safeIslandText === selectedName;
-            const matchesType = filterType === 'all' || (entry.fields.fileType?.toLowerCase() === filterType);
-            return matchesIsland && matchesType;
-          });
-        } else if (type === 'location') {
-          filteredEntries = allEntries.filter(entry => {
-            const { locationName } = resolveLocationAndIsland(entry);
-            const matchesLocation = locationName.toLowerCase() === selectedName;
-            const matchesType = filterType === 'all' || (entry.fields.fileType?.toLowerCase() === filterType);
-            return matchesLocation && matchesType;
+        if (fields.location?.sys?.id && includes?.Entry) {
+          const locationEntry = includes.Entry.find(e => e.sys.id === fields.location.sys.id);
+
+          if (locationEntry?.fields) {
+            const geoName = locationEntry.fields.geolocation || '';
+            const islandRef = locationEntry.fields.island;
+
+            if (islandRef?.sys?.id) {
+              const islandEntry = includes.Entry.find(e => e.sys.id === islandRef.sys.id);
+              const islandName = islandEntry?.fields?.island || 'Unknown island';
+              locationText = `${geoName}, ${islandName}`;
+            } else if (geoName) {
+              locationText = geoName;
+            }
+          }
+        }
+        const description = fields.description?.content?.[0]?.content?.[0]?.value || null;
+
+        const assetsMap = {};
+        includes?.Asset?.forEach(asset => {
+          if (asset.sys.id && asset.fields?.file?.url) {
+            assetsMap[asset.sys.id] = {
+              url: `https:${asset.fields.file.url}`,
+              description: asset.fields.description || '',
+              contentType: asset.fields.file.contentType
+            };
+          }
+        });
+
+        // --- New Media Handling for Entry Page ---
+        let mainMediaHtml = '';
+        let galleryHtml = '';
+        const allImagesForGallery = []; // This will contain all images that should appear in the *bottom* scrollable gallery
+
+        // 1. Handle primary 'media' field (image, video, or audio)
+        if (fields.media?.sys?.id) { // Assuming 'media' is the ID of your flexible media field
+            const mediaAsset = assetsMap[fields.media.sys.id];
+            if (mediaAsset) {
+                if (mediaAsset.contentType.startsWith('image/')) {
+                    mainMediaHtml = `<img src="${mediaAsset.url}" id="thumbnailImage" class="thumbnail-image" alt="${mediaAsset.description || title}" />`;
+                    allImagesForGallery.push(mediaAsset); // Add to gallery if it's an image
+                } else if (mediaAsset.contentType.startsWith('video/')) {
+                    mainMediaHtml = `
+                        <video controls class="thumbnail-video">
+                            <source src="${mediaAsset.url}" type="${mediaAsset.contentType}">
+                            Your browser does not support the video tag.
+                        </video>
+                    `;
+                } else if (mediaAsset.contentType.startsWith('audio/')) {
+                    mainMediaHtml = `
+                        <audio controls class="thumbnail-audio">
+                            <source src="${mediaAsset.url}" type="${mediaAsset.contentType}">
+                            Your browser does not support the audio element.
+                        </audio>
+                    `;
+                }
+            }
+        }
+
+        // 2. If no 'media' or if 'media' was not an image, check for 'thumbnailImage' as the main display
+        if (!mainMediaHtml && fields.thumbnailImage?.sys?.id) {
+          const thumbAsset = assetsMap[fields.thumbnailImage.sys.id];
+          if (thumbAsset && thumbAsset.contentType.startsWith('image/')) {
+            mainMediaHtml = `<img src="${thumbAsset.url}" id="thumbnailImage" class="thumbnail-image" alt="${thumbAsset.description || title}" />`;
+            allImagesForGallery.push(thumbAsset); // Add to gallery if it's an image
+          }
+        }
+
+        // 3. Populate allImagesForGallery with 'imageGallery' content (only if they are images and not duplicates)
+        if (fields.imageGallery?.length) {
+          fields.imageGallery.forEach(img => {
+            if (img.sys?.id) {
+              const galleryAsset = assetsMap[img.sys.id];
+              // Only add if it's an image and not already in the main gallery list (from media or thumbnailImage)
+              if (galleryAsset && galleryAsset.contentType.startsWith('image/') && !allImagesForGallery.some(data => data.url === galleryAsset.url)) {
+                allImagesForGallery.push(galleryAsset);
+              }
+            }
           });
         }
 
-        renderPreviewItems(filteredEntries);
-        document.getElementById('archive-overlay').classList.remove('hidden');
-      });
-    });
-  }
+        // If after all checks, there's still no main media, use a placeholder
+        if (!mainMediaHtml) {
+          mainMediaHtml = `<img src="https://placehold.co/600x400?text=No+Image" id="thumbnailImage" class="thumbnail-image" alt="No image available for this entry" />`;
+        }
 
-  map.on('load', async () => {
-    allEntries = await fetchAllEntries();
-    const { islandCounts, locationCounts } = groupEntries(allEntries);
+        // Conditionally render the image gallery (thumbnails below the main media)
+        if (allImagesForGallery.length > 0) {
+            galleryHtml = `
+                <div class="gallery-wrapper">
+                    <button class="thumb-arrow thumb-left">←</button>
+                    <div class="thumbnail-viewport">
+                        <div class="image-gallery" id="image-gallery">
+                            ${allImagesForGallery.map((imgData, i) => `
+                                <img class="thumb ${i === 0 ? 'selected' : ''}" src="${imgData.url}" data-index="${i}" alt="${imgData.description || 'Thumbnail image'}" />
+                            `).join('')}
+                        </div>
+                    </div>
+                    <button class="thumb-arrow thumb-right">→</button>
+                </div>
+            `;
+        }
 
-    const hoverPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
 
-    map.on('mouseenter', 'bay-island-islands-fill', () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', 'bay-island-islands-fill', () => map.getCanvas().style.cursor = '');
-    map.on('mouseenter', 'biarchives-geolocations', (e) => {
-      const coordinates = e.features[0].geometry.coordinates.slice();
-      const locationName = e.features[0].properties.location || "Unnamed Location";
-      hoverPopup.setLngLat(coordinates).setHTML(`<strong>${locationName}</strong>`).addTo(map);
-    });
-    map.on('mouseleave', 'biarchives-geolocations', () => hoverPopup.remove());
+        const metaLines = `<p class="entry-meta">${locationText}<br>${date}</p>`;
+        const descriptionBlock = description ? `<div class="entry-description">${description}</div>` : '';
 
-    map.on('click', 'bay-island-islands-fill', (e) => {
-      const props = e.features[0].properties;
-      const island = props.island?.toLowerCase().trim();
-      const stats = islandCounts[island] || { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+        function toYouTubeEmbed(url) {
+          const match = url.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([\w-]+)/);
+          return match ? `https://www.youtube.com/embed/${match[1]}` : url;
+        }
 
-      document.getElementById('sidebar-title').textContent = props.island || "Unknown Island";
-      document.getElementById('sidebar-subtitle').textContent = "";
-      document.getElementById('sidebar-description').textContent = props.description || "No description available.";
+        let videoEmbed = '';
+        if (fields.videoEmbedURL) {
+          const embedURL = toYouTubeEmbed(fields.videoEmbedURL);
+          videoEmbed = `
+            <div class="entry-media">
+              <h3>Video</h3>
+              <div class="video-wrapper">
+                <iframe src="${embedURL}" frameborder="0" allowfullscreen></iframe>
+              </div>
+            </div>
+          `;
+        }
 
-      document.getElementById('archive-buttons').innerHTML = `
-        <button id="btn-all" data-filter-type="all">View All (${stats.total})</button>
-        <button id="btn-albums" data-filter-type="albums">Albums (${stats.albums})</button>
-        <button id="btn-photos" data-filter-type="photos">Photos (${stats.photos})</button>
-        <button id="btn-videos" data-filter-type="videos">Videos (${stats.videos})</button>
-        <button id="btn-audio" data-filter-type="audio">Audio (${stats.audio})</button>
-        <button id="btn-text" data-filter-type="text">Text (${stats.text})</button>
-      `;
-      document.getElementById('sidebar').classList.remove('hidden');
-      attachButtonListeners(island, 'island');
-    });
+        let mediaSection = '';
+        // Only show mediaSection if there's an embedded video. The primary 'media' field is handled above.
+        if (videoEmbed) {
+          mediaSection = `
+            <section class="entry-media-section">
+              <div class="media-row">
+                <div class="media-left">
+                  ${videoEmbed}
+                </div>
+                <div class="media-right">
+                  <p>This media was included to supplement the archive record with audiovisual material.</p>
+                </div>
+              </div>
+            </section>
+          `;
+        }
 
-    map.on('click', 'biarchives-geolocations', (e) => {
-      const props = e.features[0].properties;
-      const location = props.location?.toLowerCase().trim();
-      const stats = locationCounts[location] || { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+        let relatedLinks = '';
+        if (fields.relatedArchiveRecords?.length) {
+          const related = fields.relatedArchiveRecords
+            .map(link => includes.Entry.find(e => e.sys.id === link.sys.id))
+            .filter(Boolean);
 
-      document.getElementById('sidebar-title').textContent = props.location || "Untitled Location";
-      document.getElementById('sidebar-subtitle').textContent = props.island || "";
-      document.getElementById('sidebar-description').textContent = props.description || "No description available.";
+          if (related.length) {
+            relatedLinks = `
+              <section class="entry-section entry-related">
+                <h3>Related Archive Records</h3>
+                <div class="related-cards">
+                  ${related.map(e => {
+              let relatedImageUrl = 'https://placehold.co/400x300?text=No+Image';
+              let relatedImageDescription = 'No image available';
 
-      document.getElementById('archive-buttons').innerHTML = `
-        <button id="btn-all" data-filter-type="all">View All (${stats.total})</button>
-        <button id="btn-albums" data-filter-type="albums">Albums (${stats.albums})</button>
-        <button id="btn-photos" data-filter-type="photos">Photos (${stats.photos})</button>
-        <button id="btn-videos" data-filter-type="videos">Videos (${stats.videos})</button>
-        <button id="btn-audio" data-filter-type="audio">Audio (${stats.audio})</button>
-        <button id="btn-text" data-filter-type="text">Text (${stats.text})</button>
-      `;
-      document.getElementById('sidebar').classList.remove('hidden');
-      attachButtonListeners(location, 'location');
-    });
+              // Related card image priority: media > thumbnailImage > first imageGallery > placeholder
+              if (e.fields.media?.sys?.id) {
+                  const relatedMediaAsset = assetsMap[e.fields.media.sys.id];
+                  if (relatedMediaAsset && relatedMediaAsset.contentType.startsWith('image/')) {
+                      relatedImageUrl = relatedMediaAsset.url;
+                      relatedImageDescription = relatedMediaAsset.description || '';
+                  }
+              } else if (e.fields.thumbnailImage?.sys?.id) {
+                  const thumbAsset = assetsMap[e.fields.thumbnailImage.sys.id];
+                  if (thumbAsset && thumbAsset.contentType.startsWith('image/')) {
+                      relatedImageUrl = thumbAsset.url;
+                      relatedImageDescription = thumbAsset.description || '';
+                  }
+              } else if (e.fields.imageGallery?.length && e.fields.imageGallery[0].sys?.id) {
+                  const firstGalleryAsset = assetsMap[e.fields.imageGallery[0].sys.id];
+                  if (firstGalleryAsset && firstGalleryAsset.contentType.startsWith('image/')) {
+                      relatedImageUrl = firstGalleryAsset.url;
+                      relatedImageDescription = firstGalleryAsset.description || '';
+                  }
+              }
 
-    document.getElementById('back-button').addEventListener('click', () => {
-      document.getElementById('sidebar').classList.add('hidden');
-      document.getElementById('archive-previews').innerHTML = '';
-      const overlay = document.getElementById('archive-overlay');
-      overlay.classList.add('hidden');
-      overlay.style.display = '';
-    });
-  });
-</script>
+              const relatedTitle = e.fields.title || 'Untitled';
+              const relatedDescription = e.fields.description?.content?.[0]?.content?.[0]?.value || '';
+
+              return `
+                          <a class="related-card" href="/entry.html?id=${e.sys.id}">
+                            <img src="${relatedImageUrl}" alt="${relatedImageDescription ? relatedImageDescription : relatedTitle}" />
+                            <div class="related-card-text">
+                              <h4>${relatedTitle}</h4>
+                              <p>${relatedDescription.substring(0, 100)}${relatedDescription.length > 100 ? '...' : ''}</p>
+                            </div>
+                          </a>`;
+            }).join('')}
+                </div>
+              </section>
+            `;
+          }
+        }
+
+        const container = document.getElementById('entry-detail');
+        container.innerHTML = `
+          <a href="/archives.html" class="back-link">← To All Archives</a>
+
+          <div class="entry-main">
+            <div class="entry-header">
+              <div class='entry-text-block'>
+                <h1 class="entry-title">${title}</h1>
+                ${metaLines}
+                ${descriptionBlock}
+              </div>
+              <div class="entry-gallery">
+                <div class="thumbnail-image-wrapper">
+                  <button class="arrow left">←</button>
+                  ${mainMediaHtml}
+                  <button class="arrow right">→</button>
+                  <span class="fullscreen-icon" id="fullscreen-toggle">⛶</span>
+                </div>
+              </div>
+            </div>
+            ${galleryHtml}
+          </div>
+
+          ${mediaSection}
+
+          ${relatedLinks}
+        `;
+
+        // --- Functionality (only run if relevant elements exist after HTML injection) ---
+        let currentIndex = 0;
+        const thumbnailImage = document.getElementById('thumbnailImage'); // Note: This could be an image, video, or audio element now
+        const thumbs = document.querySelectorAll('.image-gallery img');
+
+        const fullscreenOverlay = document.getElementById('fullscreen-overlay');
+        const fullscreenImage = document.getElementById('fullscreen-image');
+        const fullscreenCaption = document.getElementById('fullscreen-caption');
+        const fullscreenClose = document.getElementById('fullscreen-close');
+        const fullscreenPrev = document.getElementById('fullscreen-prev');
+        const fullscreenNext = document.getElementById('fullscreen-next');
+        const fullscreenToggle = document.getElementById('fullscreen-toggle');
+
+        const galleryWrapper = document.querySelector('.gallery-wrapper');
+        const thumbnailViewport = document.querySelector('.thumbnail-viewport');
+        const imageGallery = document.getElementById('image-gallery');
+
+
+        // Only set up image gallery functionality if there are images in the gallery
+        if (allImagesForGallery.length > 0) {
+            const updateImage = (index) => {
+              currentIndex = (index + allImagesForGallery.length) % allImagesForGallery.length;
+              if (thumbnailImage) { // Check if main display is an image to update its source
+                if (thumbnailImage.tagName === 'IMG') {
+                   thumbnailImage.src = allImagesForGallery[currentIndex].url;
+                   thumbnailImage.alt = allImagesForGallery[currentIndex].description || '';
+                }
+              }
+              thumbs.forEach(el => el.classList.remove('selected'));
+              if (thumbs[currentIndex]) {
+                thumbs[currentIndex].classList.add('selected');
+              }
+              if (fullscreenOverlay.classList.contains('visible')) {
+                updateFullscreenImage(currentIndex);
+              }
+            };
+
+            const updateFullscreenImage = (index) => {
+              fullscreenImage.src = allImagesForGallery[index].url;
+              fullscreenCaption.textContent = allImagesForGallery[index].description || '';
+            };
+
+            const openFullscreen = (index) => {
+              fullscreenOverlay.classList.add('visible');
+              updateFullscreenImage(index);
+              document.body.style.overflow = 'hidden';
+            };
+
+            const closeFullscreen = () => {
+              fullscreenOverlay.classList.remove('visible');
+              document.body.style.overflow = '';
+            };
+
+            // Event Listeners for main image navigation (only for actual images)
+            if (thumbnailImage && thumbnailImage.tagName === 'IMG') {
+                thumbnailImage.addEventListener('click', () => openFullscreen(currentIndex));
+            }
+            if (fullscreenToggle) {
+                fullscreenToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openFullscreen(currentIndex);
+                });
+            }
+
+            thumbs.forEach((thumb, index) => {
+              thumb.addEventListener('click', () => updateImage(index));
+            });
+
+            if (document.querySelector('.arrow.left')) {
+              document.querySelector('.arrow.left').addEventListener('click', () => updateImage(currentIndex - 1));
+            }
+            if (document.querySelector('.arrow.right')) {
+              document.querySelector('.arrow.right').addEventListener('click', () => updateImage(currentIndex + 1));
+            }
+
+            // Event Listeners for Fullscreen
+            if (fullscreenClose) {
+              fullscreenClose.addEventListener('click', closeFullscreen);
+            }
+            if (fullscreenPrev) {
+              fullscreenPrev.addEventListener('click', () => {
+                currentIndex = (currentIndex - 1 + allImagesForGallery.length) % allImagesForGallery.length;
+                updateImage(currentIndex);
+              });
+            }
+            if (fullscreenNext) {
+              fullscreenNext.addEventListener('click', () => {
+                currentIndex = (currentIndex + 1) % allImagesForGallery.length;
+                updateImage(currentIndex);
+              });
+            }
+            if (fullscreenOverlay) {
+              fullscreenOverlay.addEventListener('click', (e) => {
+                if (e.target === fullscreenOverlay) {
+                  closeFullscreen();
+                }
+              });
+            }
+            document.addEventListener('keydown', (e) => {
+              if (fullscreenOverlay && fullscreenOverlay.classList.contains('visible')) {
+                if (e.key === 'Escape') {
+                  closeFullscreen();
+                } else if (e.key === 'ArrowLeft') {
+                  currentIndex = (currentIndex - 1 + allImagesForGallery.length) % allImagesForGallery.length;
+                  updateImage(currentIndex);
+                } else if (e.key === 'ArrowRight') {
+                  currentIndex = (currentIndex + 1) % allImagesForGallery.length;
+                  updateImage(currentIndex);
+                }
+              }
+            });
+
+
+            let thumbStartIndex = 0;
+            const thumbWidth = 80;
+            const thumbGap = 5;
+
+            const updateViewportWidth = () => {
+              if (thumbs.length === 0) {
+                thumbnailViewport.style.width = '0px';
+                galleryWrapper.style.width = `calc(0px + ${thumbLeftArrow.offsetWidth}px + ${thumbRightArrow.offsetWidth}px + ${thumbGap * 2}px)`;
+                return;
+              }
+
+              let visibleThumbsCount = Math.min(thumbs.length, 4);
+
+              const totalThumbsWidth = (visibleThumbsCount * thumbWidth) + ((visibleThumbsCount - 1) * thumbGap);
+
+              thumbnailViewport.style.width = `${totalThumbsWidth}px`;
+              thumbnailViewport.style.maxWidth = `${totalThumbsWidth}px`;
+
+              const thumbLeftArrow = document.querySelector('.thumb-left');
+              const thumbRightArrow = document.querySelector('.thumb-right');
+
+              if (galleryWrapper && thumbnailViewport && thumbLeftArrow && thumbRightArrow) {
+                const wrapperWidth = thumbnailViewport.offsetWidth + thumbLeftArrow.offsetWidth + thumbRightArrow.offsetWidth + (thumbGap * 2);
+                galleryWrapper.style.width = `${wrapperWidth}px`;
+              }
+            };
+
+            const updateThumbnailView = () => {
+              const gallery = document.getElementById('image-gallery');
+              if (gallery) {
+                const offset = thumbStartIndex * (thumbWidth + thumbGap);
+                gallery.style.transform = `translateX(-${offset}px)`;
+              }
+            };
+
+            const thumbLeftArrow = document.querySelector('.thumb-left');
+            const thumbRightArrow = document.querySelector('.thumb-right');
+
+            if (thumbLeftArrow) {
+              thumbLeftArrow.addEventListener('click', () => {
+                if (thumbStartIndex > 0) {
+                  thumbStartIndex--;
+                  updateThumbnailView();
+                }
+              });
+            }
+
+            if (thumbRightArrow) {
+              thumbRightArrow.addEventListener('click', () => {
+                const thumbsPerPage = Math.floor(thumbnailViewport.offsetWidth / (thumbWidth + thumbGap));
+
+                if (thumbStartIndex + thumbsPerPage < allImagesForGallery.length) {
+                  thumbStartIndex++;
+                  updateThumbnailView();
+                }
+              });
+            }
+
+            updateViewportWidth();
+            updateThumbnailView();
+        } else {
+            // Hide elements if there's no gallery data
+            if (galleryWrapper) galleryWrapper.style.display = 'none';
+            if (document.querySelector('.arrow.left')) document.querySelector('.arrow.left').style.display = 'none';
+            if (document.querySelector('.arrow.right')) document.querySelector('.arrow.right').style.display = 'none';
+            if (fullscreenToggle) fullscreenToggle.style.display = 'none';
+        }
+
+      })
+      .catch(err => console.error('Failed to load entry:', err));
+  </script>
+
+</body>
 
 </html>

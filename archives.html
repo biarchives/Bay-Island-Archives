@@ -165,7 +165,13 @@
         const safeIslandText = typeof islandText === 'string' ? islandText.toLowerCase() : 'unknown';
 
         // --- DYNAMIC THUMBNAIL AND TYPE LOGIC ---
-        let imageUrl = 'https://via.placeholder.com/300x200?text=No+Image'; // Default placeholder
+        function extractYouTubeVideoId(url) {
+          const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+          const match = url.match(regex);
+          return (match && match[1]) ? match[1] : null;
+        }
+
+        let imageUrl = null; // Changed to null to allow for no image
         let imageAlt = `${title} - No Image`;
         let itemType = 'unknown'; // Default item type for filtering
 
@@ -200,24 +206,39 @@
             }
           }
         } else if (contentTypeId === 'singleEntry' && fields.externalUrl) {
-          // Logic for external URL entry
-          imageUrl = 'https://via.placeholder.com/300x200?text=External+URL';
-          imageAlt = `External Link: ${title}`;
-          // Assuming most external links are videos (e.g., YouTube)
-          itemType = 'video';
+          // CORRECTED Logic for external URL entry (YouTube thumbnail)
+          const videoId = extractYouTubeVideoId(fields.externalUrl);
+          if (videoId) {
+            // Correct and reliable YouTube thumbnail URL
+            imageUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+            imageAlt = `YouTube Video: ${title}`;
+            itemType = 'video';
+          } else {
+            // Fallback for non-YouTube external URLs
+            imageUrl = 'https://via.placeholder.com/300x200?text=External+URL';
+            imageAlt = `External Link: ${title}`;
+            itemType = 'link'; // A new type for non-video external links
+          }
         }
         // --- END DYNAMIC THUMBNAIL AND TYPE LOGIC ---
 
+        // The rest of your code for creating the div and populating it
         const div = document.createElement('div');
         div.className = 'archive-item';
         div.setAttribute('data-title', title.toLowerCase());
         div.setAttribute('data-date', date);
         div.setAttribute('data-location', safeIslandText);
-        div.setAttribute('data-type', itemType); // Use the dynamically determined itemType
+        div.setAttribute('data-type', itemType);
+
+        // Conditionally add the image
+        let imageHtml = '';
+        if (imageUrl) {
+          imageHtml = `<img src="${imageUrl}" alt="${imageAlt}">`;
+        }
 
         div.innerHTML = `
           <a href="entry.html?id=${item.sys.id}">
-            <img src="${imageUrl}" alt="${imageAlt}">
+            ${imageHtml}
             <div class="item-text">
               <strong>${title}</strong><br />
               ${locationText}<br/>

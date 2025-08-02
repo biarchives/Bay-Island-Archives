@@ -174,6 +174,12 @@
     return { islandCounts, locationCounts };
   }
 
+  function extractYouTubeVideoId(url) {
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return (match && match[1]) ? match[1] : null;
+  }
+
   function renderPreviewItems(entries) {
     const previewContainer = document.getElementById('archive-previews');
     previewContainer.innerHTML = '';
@@ -191,9 +197,9 @@
       const { locationName, islandName } = resolveLocationAndIsland(item);
       const locationText = `${locationName}, ${islandName}`;
 
-      let imageUrl = 'https://via.placeholder.com/300x200?text=No+Image';
+      let imageUrl = null;
 
-      // Thumbnail Image Logic: Prioritize media, then thumbnailImage, then imageGallery
+      // Thumbnail Image Logic: Prioritize media, then thumbnailImage, then imageGallery, then externalUrl
       if (fields.media?.sys?.id) {
         const mediaAsset = allAssets.find(a => a.sys.id === fields.media.sys.id);
         if (mediaAsset?.fields?.file?.url && mediaAsset.fields.file.contentType.startsWith('image/')) {
@@ -209,18 +215,36 @@
         if (firstGalleryImage?.fields?.file?.url) {
           imageUrl = `https:${firstGalleryImage.fields.file.url}`;
         }
+      } else if (fields.externalUrl) {
+        const videoId = extractYouTubeVideoId(fields.externalUrl);
+        if (videoId) {
+          // Standard YouTube thumbnail URL
+          imageUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+        }
+      }
+
+      // Conditionally create the image HTML
+      let imageHtml = '';
+      if (imageUrl) {
+        imageHtml = `<img src="${imageUrl}" alt="${title}" />`;
       }
 
       const cardLink = document.createElement('a');
-      cardLink.href = `entry.html?id=${item.sys.id}`;
       cardLink.className = 'archive-card';
+      cardLink.href = `entry.html?id=${item.sys.id}`;
       cardLink.innerHTML = `
-        <img src="${imageUrl}" alt="${title}" />
+        ${imageHtml}
         <div class="card-text">
           <h3>${title}</h3>
           <p>${date} — ${locationText}</p>
         </div>
       `;
+
+      cardLink.addEventListener('click', (event) => {
+        event.preventDefault();
+        window.location.href = `entry.html?id=${item.sys.id}`;
+      });
+
       previewContainer.appendChild(cardLink);
     });
   }

@@ -21,7 +21,7 @@
   // Since these variables are already declared in the parent entry.html,
   // we can use them directly without redeclaring them.
   const contentfulUrl = `https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&sys.id=${entryId}&include=2`;
-  
+
   fetch(contentfulUrl)
     .then(res => res.json())
     .then(data => {
@@ -42,7 +42,7 @@
           };
         }
       });
-      
+
       const relatedEntriesMap = {};
       includes?.Entry?.forEach(e => {
         relatedEntriesMap[e.sys.id] = e;
@@ -57,30 +57,37 @@
       if (fields.description?.content?.[0]?.content?.[0]?.value) {
         document.getElementById('entry-description').textContent = fields.description.content[0].content[0].value;
       }
-      
+
+      // Helper function for YouTube ID extraction
+      function extractYouTubeVideoId(url) {
+        if (!url) return null;
+        const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+        const match = url.match(regex);
+        return (match && match[1]) ? match[1] : null;
+      }
+
       // Single Media Handling
+      // This block goes inside your `fetch` call
       const mediaPlaceholder = document.getElementById('single-media-placeholder');
       let mediaHtml = '';
-      if (fields.media?.sys?.id) {
-          const mediaAsset = assetsMap[fields.media.sys.id];
-          if (mediaAsset) {
-              if (mediaAsset.contentType.startsWith('image/')) {
-                  mediaHtml = `<img src="${mediaAsset.url}" alt="${mediaAsset.description || fields.title}" />`;
-              } else if (mediaAsset.contentType.startsWith('video/')) {
-                  mediaHtml = `<video controls><source src="${mediaAsset.url}" type="${mediaAsset.contentType}"></video>`;
-              } else if (mediaAsset.contentType.startsWith('audio/')) {
-                  mediaHtml = `<audio controls><source src="${mediaAsset.url}" type="${mediaAsset.contentType}"></audio>`;
-              }
-          }
-      } else if (fields.externalUrl) {
-          // This assumes the external URL is a YouTube embed
-          mediaHtml = `<iframe src="${fields.externalUrl}" frameborder="0" allowfullscreen></iframe>`;
+
+      if (fields.externalUrl) {
+        const videoId = extractYouTubeVideoId(fields.externalUrl);
+
+        if (videoId) {
+          // Correct and simple YouTube embed URL
+          let embedUrl = `https://www.youtube.com/embed/${videoId}`;
+          mediaHtml = `<div class="video-wrapper"><iframe src="${embedUrl}" frameborder="0" allowfullscreen></iframe></div>`;
+        } else {
+          // Fallback for non-YouTube links
+          mediaHtml = `<a href="${fields.externalUrl}" target="_blank">External Link</a>`;
+        }
       } else {
-          mediaHtml = `<img src="https://placehold.co/600x400?text=No+Media" alt="No media available" />`;
+        // Fallback if no URL is provided
+        mediaHtml = `<img src="https://placehold.co/600x400?text=No+Media" alt="No media available" />`;
       }
 
       mediaPlaceholder.innerHTML = mediaHtml;
-      
       // Related Links (you would add similar logic here)
 
     })

@@ -18,8 +18,8 @@
     window.scrollTo(0, 0);
   });
 
-  // Since these variables are already declared in the parent entry.html,
-  // we can use them directly without redeclaring them.
+  // Ensure spaceId and accessToken are defined, as they are used in the URL.
+  // The code assumes they are globally available.
   const contentfulUrl = `https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&sys.id=${entryId}&include=2`;
 
   fetch(contentfulUrl)
@@ -67,24 +67,47 @@
       }
 
       // Single Media Handling
-      // This block goes inside your `fetch` call
       const mediaPlaceholder = document.getElementById('single-media-placeholder');
-      let mediaHtml = '';
+      let mediaHtml = `<img src="https://placehold.co/600x400?text=No+Media" alt="No media available" />`;
 
-      if (fields.externalUrl) {
-        const videoId = extractYouTubeVideoId(fields.externalUrl);
+      const mediaField = entry.fields.media;
+      const videoEmbedUrl = fields.videoEmbedUrl;
+      
+      if (mediaField && mediaField.sys?.id) {
+        const mediaAsset = assetsMap[mediaField.sys.id];
+        
+        if (mediaAsset) {
+          const url = mediaAsset.url;
+          const type = mediaAsset.contentType;
 
+          if (type.startsWith('image/')) {
+            mediaHtml = `<img src="${url}" alt="${mediaAsset.description || 'Media file'}" class="single-media-file" />`;
+          } else if (type.startsWith('video/')) {
+            mediaHtml = `
+              <div class="video-wrapper">
+                <video controls class="single-media-file">
+                  <source src="${url}" type="${type}">
+                  Your browser does not support the video tag.
+                </video>
+              </div>`;
+          } else if (type.startsWith('audio/')) {
+            mediaHtml = `
+              <audio controls class="single-media-file">
+                <source src="${url}" type="${type}">
+                Your browser does not support the audio element.
+              </audio>`;
+          }
+        }
+      } else if (videoEmbedUrl) {
+        const videoId = extractYouTubeVideoId(videoEmbedUrl);
         if (videoId) {
-          // Correct and simple YouTube embed URL
-          let embedUrl = `https://www.youtube.com/embed/${videoId}`;
+          // Use the correct YouTube embed URL
+          const embedUrl = `https://www.youtube.com/embed/${videoId}`;
           mediaHtml = `<div class="video-wrapper"><iframe src="${embedUrl}" frameborder="0" allowfullscreen></iframe></div>`;
         } else {
           // Fallback for non-YouTube links
-          mediaHtml = `<a href="${fields.externalUrl}" target="_blank">External Link</a>`;
+          mediaHtml = `<a href="${videoEmbedUrl}" target="_blank">External Link</a>`;
         }
-      } else {
-        // Fallback if no URL is provided
-        mediaHtml = `<img src="https://placehold.co/600x400?text=No+Media" alt="No media available" />`;
       }
 
       mediaPlaceholder.innerHTML = mediaHtml;

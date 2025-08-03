@@ -36,6 +36,9 @@
         <p>Examine the rich history and diverse cultures of the Bay Islands through our interactive map and archives.
         </p>
         <p>Click on an island or location to discover stories, photos, and more.</p>
+        <br>
+        <p id='disclaimed'>We recognize The Pech people as the indigenous people of the Bay Islands of Honduras. They were
+          a nomadic tribe, with roots throughout Central America. </p>
       </div>
       <div class="main-content">
         <div id="sidebar" class="hidden">
@@ -199,7 +202,7 @@
 
       let imageUrl = null;
 
-      // Thumbnail Image Logic: Prioritize media, then thumbnailImage, then imageGallery, then externalUrl
+      // Thumbnail Image Logic: Prioritize media, then thumbnailImage, then imageGallery, then.videoEmbedUrl) l) {
       if (fields.media?.sys?.id) {
         const mediaAsset = allAssets.find(a => a.sys.id === fields.media.sys.id);
         if (mediaAsset?.fields?.file?.url && mediaAsset.fields.file.contentType.startsWith('image/')) {
@@ -215,8 +218,8 @@
         if (firstGalleryImage?.fields?.file?.url) {
           imageUrl = `https:${firstGalleryImage.fields.file.url}`;
         }
-      } else if (fields.externalUrl) {
-        const videoId = extractYouTubeVideoId(fields.externalUrl);
+      } else if (fields.videoEmbedUrl) {
+        const videoId = extractYouTubeVideoId(fields.videoEmbedUrl);
         if (videoId) {
           // Standard YouTube thumbnail URL
           imageUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;

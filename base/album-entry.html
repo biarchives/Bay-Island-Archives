@@ -19,7 +19,8 @@
   <div id="gallery-placeholder"></div>
 </div>
 
-<div id="motion-gallery-placeholder"></div>
+
+<div id="other-media-placeholder"></div>
 <div id="related-links-placeholder"></div>
 
 <div class="fullscreen-overlay" id="fullscreen-overlay">
@@ -36,10 +37,16 @@
   window.addEventListener('load', () => {
     window.scrollTo(0, 0);
   });
-  
-  // This part of the script will be executed once the album-entry.html content is loaded
+
   const contentfulURL = `https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&sys.id=${entryId}&include=2`;
-  
+
+  function extractYouTubeVideoId(url) {
+    if (!url) return null;
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return (match && match[1]) ? match[1] : null;
+  }
+
   fetch(contentfulURL)
     .then(res => res.json())
     .then(data => {
@@ -49,133 +56,321 @@
 
       document.title = `${fields.title || 'Untitled'} | Bay Islands Archives`;
 
-      // Helper function to resolve assets and entries
       const assetsMap = {};
       includes?.Asset?.forEach(asset => {
         if (asset.sys.id && asset.fields?.file?.url) {
           assetsMap[asset.sys.id] = {
             url: `https:${asset.fields.file.url}`,
+            title: asset.fields.title || '',
             description: asset.fields.description || '',
             contentType: asset.fields.file.contentType
           };
         }
       });
-      
+
       const relatedEntriesMap = {};
       includes?.Entry?.forEach(e => {
         relatedEntriesMap[e.sys.id] = e;
       });
 
-      // Populate main content
+      // --- 1. TITLE & METADATA ---
       document.getElementById('entry-title').textContent = fields.title || 'Untitled';
       const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown Year';
-      const locationName = relatedEntriesMap[fields.location?.sys?.id]?.fields.geolocation || 'Unknown Location';
-      const islandName = relatedEntriesMap[relatedEntriesMap[fields.location?.sys?.id]?.fields.island?.sys?.id]?.fields.island || '';
+      const locationEntry = relatedEntriesMap[fields.location?.sys?.id];
+      const locationName = locationEntry?.fields.geolocation || 'Unknown Location';
+      const islandEntry = relatedEntriesMap[locationEntry?.fields.island?.sys?.id];
+      const islandName = islandEntry?.fields.island || '';
       document.getElementById('entry-meta').innerHTML = `${locationName}${islandName ? ', ' + islandName : ''}<br>${date}`;
-      if (fields.description?.content?.[0]?.content?.[0]?.value) {
-        document.getElementById('entry-description').textContent = fields.description.content[0].content[0].value;
-      }
-
-      // Populate main media and gallery
-      const allImagesForGallery = [];
-      const mainMediaPlaceholder = document.getElementById('main-media-placeholder');
-      const galleryPlaceholder = document.getElementById('gallery-placeholder');
-
-      if (fields.imageGallery?.length) {
-          fields.imageGallery.forEach(img => {
-            if (img.sys?.id) {
-              const galleryAsset = assetsMap[img.sys.id];
-              if (galleryAsset && galleryAsset.contentType.startsWith('image/')) {
-                allImagesForGallery.push(galleryAsset);
-              }
+      const descriptionRichText = fields.description?.content;
+      if (descriptionRichText) {
+        let descriptionText = '';
+        descriptionRichText.forEach(block => {
+          block.content.forEach(node => {
+            if (node.value) {
+              descriptionText += node.value + ' ';
             }
           });
+        });
+        document.getElementById('entry-description').textContent = descriptionText.trim();
       }
 
-      let mainImageHtml = `<img src="https://placehold.co/600x400?text=No+Image" id="main-image" class="thumbnail-image" alt="No image available" />`;
+      // --- 2. THUMBNAIL IMAGE & GALLERY ---
+      const allImagesForGallery = [];
+      let mainMediaHtml = '';
+
       if (fields.thumbnailImage?.sys?.id) {
         const thumbAsset = assetsMap[fields.thumbnailImage.sys.id];
         if (thumbAsset && thumbAsset.contentType.startsWith('image/')) {
-            mainImageHtml = `<img src="${thumbAsset.url}" id="main-image" class="thumbnail-image" alt="${thumbAsset.description || fields.title}" />`;
-            const isThumbInGallery = allImagesForGallery.some(img => img.url === thumbAsset.url);
-            if (!isThumbInGallery) {
-                allImagesForGallery.unshift(thumbAsset);
-            }
+          mainMediaHtml = `<img src="${thumbAsset.url}" id="main-media" class="main-media" alt="${thumbAsset.description || fields.title}" />`;
+          allImagesForGallery.push(thumbAsset);
         }
+      } else {
+        mainMediaHtml = `<img src="https://placehold.co/600x400?text=No+Image" id="main-media" class="main-media" alt="No media available" />`;
       }
-      mainMediaPlaceholder.innerHTML = mainImageHtml;
+
+      if (fields.imageGallery?.length) {
+        fields.imageGallery.forEach(img => {
+          if (img.sys?.id) {
+            const galleryAsset = assetsMap[img.sys.id];
+            if (galleryAsset && galleryAsset.contentType.startsWith('image/')) {
+              const isThumbInGallery = allImagesForGallery.some(item => item.url === galleryAsset.url);
+              if (!isThumbInGallery) {
+                allImagesForGallery.push(galleryAsset);
+              }
+            }
+          }
+        });
+      }
+
+      document.getElementById('main-media-placeholder').innerHTML = mainMediaHtml;
+
+      const galleryPlaceholder = document.getElementById('gallery-placeholder');
+      if (allImagesForGallery.length > 0) {
+        let galleryHtml = `<div class ="gallery-container">
+          <div class="gallery-wrapper">
+                    <button class="thumb-arrow thumb-left">←</button>
+                    <div class="thumbnail-viewport">
+                        <div class="image-gallery" id="image-gallery">
+                            ${allImagesForGallery.map((imgData, i) => `<img class="thumb ${i === 0 ? 'selected' : ''}" src="${imgData.url}" data-index="${i}" alt="${imgData.description || 'Thumbnail image'}" />`).join('')}
+                        </div>
+                    </div>
+                    <button class="thumb-arrow thumb-right">→</button>
+                </div>
+                </div>`;
+        galleryPlaceholder.innerHTML = galleryHtml;
+      } else {
+        galleryPlaceholder.innerHTML = '';
+      }
 
       if (allImagesForGallery.length > 0) {
-        let galleryHtml = `<div class="gallery-wrapper">
-            <button class="thumb-arrow thumb-left">←</button>
-            <div class="thumbnail-viewport">
-                <div class="image-gallery" id="image-gallery">
-                    ${allImagesForGallery.map((imgData, i) => `<img class="thumb ${i === 0 ? 'selected' : ''}" src="${imgData.url}" data-index="${i}" alt="${imgData.description || 'Thumbnail image'}" />`).join('')}
-                </div>
-            </div>
-            <button class="thumb-arrow thumb-right">→</button>
-        </div>`;
-        galleryPlaceholder.innerHTML = galleryHtml;
+        // Get the gallery elements
+        const imageGallery = document.getElementById('image-gallery');
+        const thumbnailViewport = document.querySelector('.thumbnail-viewport');
+        const thumbs = document.querySelectorAll('.thumb');
+        const leftArrow = document.querySelector('.thumb-left');
+        const rightArrow = document.querySelector('.thumb-right');
+
+        // Find the selected thumbnail and set the initial index
+        let currentIndex = Array.from(thumbs).findIndex(thumb => thumb.classList.contains('selected'));
+        if (currentIndex === -1) currentIndex = 0; // Default to first image
+
+        const thumbWidth = 80; // The fixed width of your thumbnails
+        const thumbGap = 5; // The gap between thumbnails
+
+        // Function to update the gallery's position
+        function updateGalleryPosition() {
+          // Only scroll if the gallery is wider than the viewport
+          if (imageGallery.scrollWidth > thumbnailViewport.offsetWidth) {
+            const scrollPosition = currentIndex * (thumbWidth + thumbGap);
+            imageGallery.style.transform = `translateX(-${scrollPosition}px)`;
+          }
+        }
+
+        // Update the selected class on the thumbnails
+        function updateSelectedThumb() {
+          thumbs.forEach(thumb => thumb.classList.remove('selected'));
+          if (thumbs[currentIndex]) {
+            thumbs[currentIndex].classList.add('selected');
+          }
+        }
+
+        // Add event listeners for the arrow buttons
+        leftArrow.addEventListener('click', () => {
+          if (currentIndex > 0) {
+            currentIndex--;
+            updateGalleryPosition();
+            updateSelectedThumb();
+          }
+        });
+
+        rightArrow.addEventListener('click', () => {
+          if (currentIndex < thumbs.length - 1) {
+            currentIndex++;
+            updateGalleryPosition();
+            updateSelectedThumb();
+          }
+        });
+
+        // Add event listeners for clicking on individual thumbnails
+        thumbs.forEach(thumb => {
+          thumb.addEventListener('click', (event) => {
+            currentIndex = parseInt(event.target.dataset.index);
+            updateGalleryPosition();
+            updateSelectedThumb();
+          });
+        });
+
+        // Call the update function on page load to set the initial state
+        updateGalleryPosition();
+
+        // Recalculate on window resize to fix button issues on smaller screens
+        window.addEventListener('resize', updateGalleryPosition);
       }
-      
-      // Fullscreen and Gallery Logic (this part remains largely the same)
+      // --- 3. VIDEO & AUDIO FILES (renders only if present) ---
+      const otherMediaPlaceholder = document.getElementById('other-media-placeholder');
+      let otherMediaHtml = '';
+
+      if (fields.videoFile?.sys?.id) {
+        const videoAsset = assetsMap[fields.videoFile.sys.id];
+        if (videoAsset) {
+          otherMediaHtml += `
+                        <section class="entry-section">
+                            <h2>Video File</h2>
+                            <h3>${videoAsset.title}</h3>
+                            <p>${videoAsset.description}</p>
+                            <video controls class="other-media">
+                                <source src="${videoAsset.url}" type="${videoAsset.contentType}">
+                            </video>
+                        </section>
+                    `;
+        }
+      }
+      if (fields.audioFile?.sys?.id) {
+        const audioAsset = assetsMap[fields.audioFile.sys.id];
+        if (audioAsset) {
+          otherMediaHtml += `
+                         <section class="entry-section">
+                            <h2>Audio File</h2>
+                            <div class="media-row">
+                                <div class="media-content">
+                                    <audio controls class="audio-player">
+                                        <source src="${audioAsset.url}" type="${audioAsset.contentType}">
+                                    </audio>
+                                </div>
+                                <div class="metadata-block">
+                                    <h3>${audioAsset.title}</h3>
+                                    <p>${audioAsset.description}</p>
+                                </div>
+                            </div>
+                        </section>
+                    `;
+        }
+      }
+      if (fields.videoEmbedUrl) {
+        const videoId = extractYouTubeVideoId(fields.videoEmbedUrl);
+        if (videoId) {
+          let embedUrl = `https://www.youtube.com/embed/${videoId}`;
+          otherMediaHtml += `
+                        <section class="entry-section">
+                            <h2>Video Embed</h2>
+                            <div class="video-wrapper"><iframe src="${embedUrl}" frameborder="0" allowfullscreen></iframe></div>
+                        </section>
+                    `;
+        }
+      }
+      otherMediaPlaceholder.innerHTML = otherMediaHtml;
+
+
+      // --- 4. RELATED ENTRIES ---
+      const relatedLinksPlaceholder = document.getElementById('related-links-placeholder');
+      let relatedLinksHtml = '';
+      if (fields.relatedEntries?.length) {
+        const related = fields.relatedEntries
+          .map(link => includes.Entry.find(e => e.sys.id === link.sys.id))
+          .filter(Boolean);
+
+        if (related.length) {
+          relatedLinksHtml = `
+                        <section class="entry-section entry-related">
+                            <h2>Related Entries</h2>
+                            <div class="related-cards">
+                                ${related.map(e => {
+            let relatedImageUrl = 'https://placehold.co/400x300?text=No+Image';
+            let relatedTitle = e.fields.title || 'Untitled';
+            let relatedDescription = '';
+
+            // Priority 1: Check for a thumbnail image
+            if (e.fields.thumbnailImage?.sys?.id) {
+              const relatedThumb = assetsMap[e.fields.thumbnailImage.sys.id];
+              if (relatedThumb && relatedThumb.contentType.startsWith('image/')) {
+                relatedImageUrl = relatedThumb.url;
+              }
+            }
+            // Priority 2: If no thumbnail, check the media field for an image
+            else if (e.fields.media?.sys?.id) {
+              const relatedMedia = assetsMap[e.fields.media.sys.id];
+              if (relatedMedia && relatedMedia.contentType.startsWith('image/')) {
+                relatedImageUrl = relatedMedia.url;
+              }
+            }
+
+            if (e.fields.description?.content?.[0]?.content?.[0]?.value) {
+              relatedDescription = e.fields.description.content[0].content[0].value;
+            }
+
+            return `<a class="related-card" href="/entry.html?id=${e.sys.id}">
+                                        <img src="${relatedImageUrl}" alt="${relatedTitle} thumbnail" />
+                                        <div class="related-card-text">
+                                            <h3>${relatedTitle}</h3>
+                                            <p>${relatedDescription.substring(0, 100)}${relatedDescription.length > 100 ? '...' : ''}</p>
+                                        </div>
+                                    </a>`;
+          }).join('')}
+                            </div>
+                        </section>`;
+        }
+      }
+      if (relatedLinksHtml) {
+        relatedLinksPlaceholder.innerHTML = relatedLinksHtml;
+      }
+
+      // --- FULLSCREEN & GALLERY LOGIC ---
       const fullscreenOverlay = document.getElementById('fullscreen-overlay');
-      const fullscreenImage = document.getElementById('fullscreen-image');
-      const fullscreenCaption = document.getElementById('fullscreen-caption');
-      const fullscreenClose = document.getElementById('fullscreen-close');
-      const fullscreenPrev = document.getElementById('fullscreen-prev');
-      const fullscreenNext = document.getElementById('fullscreen-next');
-      const mainImage = document.getElementById('main-image');
+      const mainMediaElement = document.getElementById('main-media');
       const fullscreenToggle = document.getElementById('fullscreen-toggle');
       const thumbs = document.querySelectorAll('.image-gallery img');
 
       let currentIndex = 0;
-      
-      const updateImage = (index) => {
+
+      if (allImagesForGallery.length > 0) {
+        const updateImage = (index) => {
           currentIndex = (index + allImagesForGallery.length) % allImagesForGallery.length;
-          mainImage.src = allImagesForGallery[currentIndex].url;
-          mainImage.alt = allImagesForGallery[currentIndex].description || '';
+          if (mainMediaElement) {
+            mainMediaElement.src = allImagesForGallery[currentIndex].url;
+            mainMediaElement.alt = allImagesForGallery[currentIndex].description || '';
+          }
           thumbs.forEach(el => el.classList.remove('selected'));
           if (thumbs[currentIndex]) {
-              thumbs[currentIndex].classList.add('selected');
+            thumbs[currentIndex].classList.add('selected');
           }
-      };
+        };
 
-      const openFullscreen = (index) => {
+        const openFullscreen = (index) => {
           fullscreenOverlay.innerHTML = `<div class="fullscreen-modal">
-                <button class="fullscreen-close" id="fullscreen-close">×</button>
-                <img src="${allImagesForGallery[index].url}" alt="Fullscreen Image" id="fullscreen-image" />
-                <p class="fullscreen-caption" id="fullscreen-caption">${allImagesForGallery[index].description || ''}</p>
-                <button class="fullscreen-nav-arrow left" id="fullscreen-prev">←</button>
-                <button class="fullscreen-nav-arrow right" id="fullscreen-next">→</button>
-              </div>`;
+                        <button class="fullscreen-close" id="fullscreen-close">×</button>
+                        <img src="${allImagesForGallery[index].url}" alt="Fullscreen Image" id="fullscreen-image" />
+                        <p class="fullscreen-caption" id="fullscreen-caption">${allImagesForGallery[index].description || ''}</p>
+                        <button class="fullscreen-nav-arrow left" id="fullscreen-prev">←</button>
+                        <button class="fullscreen-nav-arrow right" id="fullscreen-next">→</button>
+                      </div>`;
           fullscreenOverlay.classList.add('visible');
           document.body.style.overflow = 'hidden';
-      };
+        };
 
-      // Event listeners
-      if (mainImage) mainImage.addEventListener('click', () => openFullscreen(currentIndex));
-      if (fullscreenToggle) fullscreenToggle.addEventListener('click', () => openFullscreen(currentIndex));
-      thumbs.forEach((thumb, index) => thumb.addEventListener('click', () => updateImage(index)));
-      document.querySelector('.arrow.left')?.addEventListener('click', () => updateImage(currentIndex - 1));
-      document.querySelector('.arrow.right')?.addEventListener('click', () => updateImage(currentIndex + 1));
-      
-      fullscreenOverlay.addEventListener('click', (e) => {
-        if (e.target.id === 'fullscreen-close' || e.target.classList.contains('fullscreen-overlay')) {
+        if (mainMediaElement) mainMediaElement.addEventListener('click', () => openFullscreen(currentIndex));
+        if (fullscreenToggle) fullscreenToggle.addEventListener('click', () => openFullscreen(currentIndex));
+        thumbs.forEach((thumb, index) => thumb.addEventListener('click', () => updateImage(index))); // Fixed line
+        document.querySelector('.arrow.left')?.addEventListener('click', () => updateImage(currentIndex - 1));
+        document.querySelector('.arrow.right')?.addEventListener('click', () => updateImage(currentIndex + 1));
+
+        fullscreenOverlay.addEventListener('click', (e) => {
+          if (e.target.id === 'fullscreen-close' || e.target.classList.contains('fullscreen-overlay')) {
             fullscreenOverlay.classList.remove('visible');
             document.body.style.overflow = '';
-        }
-        if (e.target.id === 'fullscreen-prev') {
+          }
+          if (e.target.id === 'fullscreen-prev') {
             currentIndex = (currentIndex - 1 + allImagesForGallery.length) % allImagesForGallery.length;
             openFullscreen(currentIndex);
-        }
-        if (e.target.id === 'fullscreen-next') {
+          }
+          if (e.target.id === 'fullscreen-next') {
             currentIndex = (currentIndex + 1) % allImagesForGallery.length;
             openFullscreen(currentIndex);
-        }
-      });
-    
-      // Motion Gallery and Related Links... (similar logic, simplified here for brevity)
+          }
+        });
+      } else {
+        document.querySelector('.entry-gallery').style.display = 'none';
+        document.querySelector('#gallery-placeholder').style.display = 'none';
+      }
     })
     .catch(err => console.error('Error fetching album entry:', err));
 </script>

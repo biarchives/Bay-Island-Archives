@@ -205,9 +205,9 @@
               itemType = 'audio';
             }
           }
-        } else if (contentTypeId === 'singleEntry' && fields.externalUrl) {
+        } else if (contentTypeId === 'singleEntry' && fields.videoEmbedUrl) {
           // CORRECTED Logic for external URL entry (YouTube thumbnail)
-          const videoId = extractYouTubeVideoId(fields.externalUrl);
+          const videoId = extractYouTubeVideoId(fields.videoEmbedUrl);
           if (videoId) {
             // Correct and reliable YouTube thumbnail URL
             imageUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;

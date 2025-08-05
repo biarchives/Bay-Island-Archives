@@ -1,7 +1,7 @@
 <a href="archives.html" class="back-link">← To All Archives</a>
 
 <div class="entry-main">
-  <div class="entry-header">
+  <div class="entry-images">
     <div class='entry-text-block'>
       <h1 class="entry-title" id="entry-title"></h1>
       <p class="entry-meta" id="entry-meta"></p>
@@ -14,14 +14,12 @@
         <button class="arrow right">→</button>
         <span class="fullscreen-icon" id="fullscreen-toggle">⛶</span>
       </div>
+      <div id="gallery-placeholder"></div>
     </div>
   </div>
-  <div id="gallery-placeholder"></div>
+  <div id="other-media-placeholder"></div>
+  <div id="related-links-placeholder"></div>
 </div>
-
-
-<div id="other-media-placeholder"></div>
-<div id="related-links-placeholder"></div>
 
 <div class="fullscreen-overlay" id="fullscreen-overlay">
   <div class="fullscreen-modal">
@@ -230,7 +228,6 @@
         if (audioAsset) {
           otherMediaHtml += `
                          <section class="entry-section">
-                            <h2>Audio File</h2>
                             <div class="media-row">
                                 <div class="media-content">
                                     <audio controls class="audio-player">
@@ -238,7 +235,7 @@
                                     </audio>
                                 </div>
                                 <div class="metadata-block">
-                                    <h3>${audioAsset.title}</h3>
+                                    <h2>${audioAsset.title}</h2>
                                     <p>${audioAsset.description}</p>
                                 </div>
                             </div>
@@ -250,12 +247,32 @@
         const videoId = extractYouTubeVideoId(fields.videoEmbedUrl);
         if (videoId) {
           let embedUrl = `https://www.youtube.com/embed/${videoId}`;
+
+          let descriptionHtml = '';
+          const richTextDescription = fields.videoEmbedUrlDescription?.content;
+
+          if (richTextDescription) {
+            let videoDescriptionText = '';
+            richTextDescription.forEach(block => {
+              block.content.forEach(node => {
+                if (node.value) {
+                  videoDescriptionText += node.value;
+                }
+              });
+            });
+            descriptionHtml = `<div class="video-description-block"><p>${videoDescriptionText.trim()}</p></div>`;
+          }
+
           otherMediaHtml += `
-                        <section class="entry-section">
-                            <h2>Video Embed</h2>
-                            <div class="video-wrapper"><iframe src="${embedUrl}" frameborder="0" allowfullscreen></iframe></div>
-                        </section>
-                    `;
+            <section class="entry-section">
+                <div class="video-row">
+                    <div class="video-wrapper">
+                        <iframe src="${embedUrl}" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                    ${descriptionHtml}
+                </div>
+            </section>
+          `;
         }
       }
       otherMediaPlaceholder.innerHTML = otherMediaHtml;

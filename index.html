@@ -33,11 +33,8 @@
     <main class="site-main">
       <div class="main-text">
         <h1>Explore the history of the Bay Islands</h1>
-        <p>Examine the rich history and diverse cultures of the Bay Islands through our interactive map and archives.
-        </p>
-        <p>Click on an island or location to discover stories, photos, and more.</p>
-        <br>
-        <p id='disclaimed'>We recognize The Pech people as the indigenous people of the Bay Islands of Honduras. They were
+        <p id='disclaimed'>We recognize The Pech people as the indigenous people of the Bay Islands of Honduras. They
+          were
           a nomadic tribe, with roots throughout Central America. </p>
       </div>
       <div class="main-content">
@@ -101,6 +98,10 @@
   let islandCounts = {};
   let locationCounts = {};
   let lastSelectedIsland = null;
+
+  // Store default map settings in constants for easy reuse
+  const defaultCenter = [-86.326, 16.125];
+  const defaultZoom = 9;
 
   async function fetchAllEntries() {
     const responses = await Promise.all(
@@ -253,12 +254,11 @@
   }
 
   mapboxgl.accessToken = 'pk.eyJ1IjoiYmlhcmNoaXZlcyIsImEiOiJjbWRtZDRmMjIxa3JlMmpxMWIyM2ZleHVoIn0.qAlCMwvS56lvr7AbC2Iuug';
-
   const map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/biarchives/cmdop5iqf01vp01sa2ol5fds9',
-    center: [-86.57845621839104, 16.29814507230684],
-    zoom: 9
+    center: defaultCenter,
+    zoom: defaultZoom
   });
 
   map.addControl(new mapboxgl.NavigationControl());
@@ -298,15 +298,42 @@
     const { islandCounts, locationCounts } = groupEntries(allEntries);
 
     const hoverPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
+    let hoveredFeatureId = null;
 
     map.on('mouseenter', 'bay-island-islands-fill', () => map.getCanvas().style.cursor = 'pointer');
     map.on('mouseleave', 'bay-island-islands-fill', () => map.getCanvas().style.cursor = '');
-    map.on('mouseenter', 'biarchives-geolocations', (e) => {
-      const coordinates = e.features[0].geometry.coordinates.slice();
-      const locationName = e.features[0].properties.location || "Unnamed Location";
-      hoverPopup.setLngLat(coordinates).setHTML(`<strong>${locationName}</strong>`).addTo(map);
+
+    map.on('mousemove', 'biarchives-geolocations', (e) => {
+      if (e.features.length > 0) {
+        const feature = e.features[0];
+        const featureId = feature.id;
+
+        // Check if we are hovering over a new feature
+        if (featureId !== hoveredFeatureId) {
+          hoveredFeatureId = featureId;
+
+          const coordinates = feature.geometry.coordinates.slice();
+          const locationName = feature.properties.location || "Unnamed Location";
+
+          // Ensure the popup is properly repositioned and its content is updated
+          hoverPopup
+            .setLngLat(coordinates)
+            .setHTML(`<strong>${locationName}</strong>`)
+            .addTo(map);
+        }
+      } else {
+        // If the mouse is on the layer but not over a feature (e.g. in a gap), remove the popup
+        if (hoveredFeatureId !== null) {
+          hoveredFeatureId = null;
+          hoverPopup.remove();
+        }
+      }
     });
-    map.on('mouseleave', 'biarchives-geolocations', () => hoverPopup.remove());
+
+    map.on('mouseleave', 'biarchives-geolocations', () => {
+      hoveredFeatureId = null;
+      hoverPopup.remove();
+    });
 
     map.on('click', 'bay-island-islands-fill', (e) => {
       const props = e.features[0].properties;
@@ -331,12 +358,21 @@
 
     map.on('click', 'biarchives-geolocations', (e) => {
       const props = e.features[0].properties;
+      const coordinates = e.features[0].geometry.coordinates.slice();
       const location = props.location?.toLowerCase().trim();
       const stats = locationCounts[location] || { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
 
+      map.flyTo({
+        center: coordinates,
+        zoom: 12, // You can adjust this zoom level as needed
+        speed: 1, // Adjust the speed of the animation
+        curve: 1, // Adjust the animation curve
+        essential: true // This ensures the animation doesn't get interrupted
+      });
+
       document.getElementById('sidebar-title').textContent = props.location || "Untitled Location";
       document.getElementById('sidebar-subtitle').textContent = props.island || "";
-      document.getElementById('sidebar-description').textContent = props.description || "No description available.";
+      document.getElementById('sidebar-description').textContent = props.description || "";
 
       document.getElementById('archive-buttons').innerHTML = `
         <button id="btn-all" data-filter-type="all">View All (${stats.total})</button>
@@ -351,6 +387,13 @@
     });
 
     document.getElementById('back-button').addEventListener('click', () => {
+      map.flyTo({
+        center: defaultCenter,
+        zoom: defaultZoom,
+        speed: 1,
+        curve: 1,
+        essential: true
+      });
       document.getElementById('sidebar').classList.add('hidden');
       document.getElementById('archive-previews').innerHTML = '';
       const overlay = document.getElementById('archive-overlay');

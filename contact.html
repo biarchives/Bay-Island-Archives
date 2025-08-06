@@ -5,79 +5,81 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bay Islands Archives</title>
-  <link rel="stylesheet" href="css/contact.css" />
+  <link rel="stylesheet" href="css/archives.css" />
 </head>
 
 <body>
   <!-- Header -->
   <div id="header-placeholder"></div>
-  <!-- Main Content -->
+
+  <!-- Main -->
   <main class="site-main">
-    <div class="contact-wrapper">
-      <section class="intro-text">
-        <h2>Get in Touch</h2>
-        <p>
-          Please feel free to reach out to us — we're always open to hearing from you. If you have historical materials,
-          photographs, or records related to the Bay Islands, we're always accepting new submissions.
-        </p>
-      </section>
-
-      <div class="form-panel">
-        <div class="tab-buttons">
-          <button class="tab-button active" data-tab="contact">Contact Us</button>
-          <button class="tab-button" data-tab="submit">Submit a Record</button>
-        </div>
-
-        <div id="contact" class="tab-panel active">
-          <form>
-            <label for="name">Name</label>
-            <input type="text" id="name" />
-
-            <label for="email">Email</label>
-            <input type="email" id="email" />
-
-            <label for="message">Message</label>
-            <textarea id="message"></textarea>
-
-            <button type="submit">Send</button>
-          </form>
-        </div>
-
-        <div id="submit" class="tab-panel">
-          <form>
-            <label for="submit-name">Name</label>
-            <input type="text" id="submit-name" />
-
-            <label for="submit-email">Email</label>
-            <input type="email" id="submit-email" />
-
-            <label for="file-type">File Type</label>
-            <select id="file-type">
-              <option>Image</option>
-              <option>Document</option>
-              <option>Audio</option>
-              <option>Video</option>
-            </select>
-
-            <label for="upload">Upload File</label>
-            <input type="file" id="upload" />
-
-            <label for="record-name">Record Name</label>
-            <input type="text" id="record-name" />
-
-            <label for="date">Date</label>
-            <input type="date" id="date" />
-
-            <label for="location">Location</label>
-            <input type="text" id="location" />
-
-            <label for="description">Description</label>
-            <textarea id="description"></textarea>
-
-            <button type="submit">Submit</button>
-          </form>
-        </div>
+    <h2>All Archives</h2>
+    <p class="description">
+      Browse all archives available for the Bay Islands. Click the island below if you want to
+      view a specific island’s records, and click on the side for more advanced sorting options.
+    </p>
+    <div class="search-container">
+      <input type="text" id="search-input" class="search-bar" placeholder="Search archives by title..." />
+      <!-- Sorting Controls -->
+      <div class="sort-controls">
+        <select id="sort-date">
+          <option value="">Sort by Date</option>
+          <option value="asc">Oldest First</option>
+          <option value="desc">Newest First</option>
+        </select>
+        <select id="sort-name">
+          <option value="">Sort by Name</option>
+          <option value="asc">A–Z</option>
+          <option value="desc">Z–A</option>
+        </select>
       </div>
+      <!-- Filters Sidebar -->
+      <aside class="filters">
+        <div class="filter-section">
+          <h2>Islands</h2>
+          <div class="filter-tags">
+            <button data-filter-type="location" data-value="Roatán">Roatán</button>
+            <button data-filter-type="location" data-value="Morat">Morat</button>
+            <button data-filter-type="location" data-value="Guanaja">Guanaja</button>
+            <button data-filter-type="location" data-value="Barbareta">Barbareta</button>
+            <button data-filter-type="location" data-value="Utila">Utila</button>
+            <button data-filter-type="location" data-value="Cochinos Pequeño">Cochinos Pequeño</button>
+            <button data-filter-type="location" data-value="Cochinos Grande">Cochinos Grande</button>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <h2>Item Type</h2>
+          <div class="filter-tags">
+            <div class="filter-tags">
+              <button data-filter-type="type" data-value="album">
+                <img src="icons/album-icon.svg" alt="Album Icon"> Album
+              </button>
+              <button data-filter-type="type" data-value="image">
+                <img src="icons/image-icon.svg" alt="Image Icon"> Image
+              </button>
+              <button data-filter-type="type" data-value="document">
+                <img src="icons/document-icon.svg" alt="Document Icon"> Document
+              </button>
+              <button data-filter-type="type" data-value="video">
+                <img src="icons/video-icon.svg" alt="Video Icon"> Video
+              </button>
+              <button data-filter-type="type" data-value="audio">
+                <img src="icons/audio-icon.svg" alt="Audio Icon"> Audio
+              </button>
+            </div>
+          </div>
+        </div>
+        <button onclick="resetFilters()">Reset Filters</button>
+
+      </aside>
+
+      <!-- Archive Grid -->
+      <section class="archive-grid">
+
+      </section>
+    </div>
     </div>
   </main>
 
@@ -99,34 +101,260 @@
     .then(data => {
       document.getElementById('footer-placeholder').innerHTML = data;
     });
-  // Existing tab logic for .tab and .panel
-  const tabs = document.querySelectorAll('.tab');
-  const panels = document.querySelectorAll('.panel');
 
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      panels.forEach(p => p.classList.remove('active'));
+  const spaceId = 'yp5hut9gr3i4';
+  const accessToken = '6cmQ6BIqhbITci25VJRJxasRNDvkKb_74mYDBAKfPdY';
+  const contentTypes = ['archivePage', 'singleEntry'];
 
-      tab.classList.add('active');
-      document.getElementById(tab.dataset.tab).classList.add('active');
+  const activeFilters = {
+    location: new Set(),
+    type: new Set()
+  };
+
+  function resolveLocationAndIsland(item, allRelatedEntries) {
+    let locationsData = [];
+    const locationRefs = item.fields.location;
+
+    // Handle both single and multiple references
+    const locationsArray = Array.isArray(locationRefs) ? locationRefs : (locationRefs ? [locationRefs] : []);
+
+    locationsArray.forEach(locationRef => {
+      const locationEntry = allRelatedEntries.find(e => e.sys.id === locationRef.sys.id);
+      if (locationEntry?.fields) {
+        let locationName = 'Unknown location';
+        let islandName = 'Unknown island';
+        let safeIslandText = 'unknown';
+
+        const islandRef = locationEntry.fields.island;
+        if (islandRef?.sys?.id) {
+          const islandEntry = allRelatedEntries.find(e => e.sys.id === islandRef.sys.id);
+          islandName = islandEntry?.fields?.island || 'Unknown island';
+          safeIslandText = islandName.toLowerCase();
+        }
+
+        // Prioritize geolocation, then fall back to islandName
+        if (locationEntry.fields.geolocation) {
+          locationName = locationEntry.fields.geolocation;
+        } else if (islandName !== 'Unknown island') {
+          locationName = islandName;
+        }
+
+        locationsData.push({ locationName, islandName, safeIslandText });
+      }
     });
-  });
 
-  // Add tab logic for .tab-button and .tab-panel
-  const tabButtons = document.querySelectorAll('.tab-button');
-  const tabPanels = document.querySelectorAll('.tab-panel');
+    return locationsData;
+  }
 
-  tabButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      tabButtons.forEach(b => b.classList.remove('active'));
-      tabPanels.forEach(p => p.classList.remove('active'));
+  Promise.all(
+    contentTypes.map(type =>
+      fetch(`https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&content_type=${type}&include=2`)
+        .then(res => res.json())
+    )
+  )
+    .then(data => {
+      const [archivePageData, singleEntryData] = data;
+      const allItems = [...archivePageData.items, ...singleEntryData.items];
 
-      button.classList.add('active');
-      document.getElementById(button.dataset.tab).classList.add('active');
+      const allAssets = [
+        ...(archivePageData.includes?.Asset || []),
+        ...(singleEntryData.includes?.Asset || [])
+      ];
+      const allRelatedEntries = [
+        ...(archivePageData.includes?.Entry || []),
+        ...(singleEntryData.includes?.Entry || [])
+      ];
+
+      const grid = document.querySelector('.archive-grid');
+
+      const assetsMap = {};
+      allAssets.forEach(asset => {
+        if (asset.sys.id && asset.fields?.file?.url) {
+          assetsMap[asset.sys.id] = {
+            url: `https:${asset.fields.file.url}`,
+            description: asset.fields.description || '',
+            contentType: asset.fields.file.contentType
+          };
+        }
+      });
+
+      allItems.forEach(item => {
+        const fields = item.fields;
+        const contentTypeId = item.sys.contentType.sys.id;
+        const title = fields.title || 'Untitled';
+        const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown year';
+
+        const locationsData = resolveLocationAndIsland(item, allRelatedEntries);
+        const locationText = locationsData.map(loc => loc.locationName).join(', ');
+        const locationTags = locationsData.map(loc => loc.safeIslandText).join(',');
+
+        function extractYouTubeVideoId(url) {
+          const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+          const match = url.match(regex);
+          return (match && match[1]) ? match[1] : null;
+        }
+
+        let imageUrl = null;
+        let imageAlt = `${title} - No Image`;
+        let itemType = 'unknown';
+
+        // NEW FILTER LOGIC:
+        if (contentTypeId === 'archivePage') {
+          itemType = 'album';
+          const thumbAsset = fields.thumbnailImage?.sys?.id ? assetsMap[fields.thumbnailImage.sys.id] : null;
+          if (thumbAsset) {
+            imageUrl = thumbAsset.url;
+            imageAlt = thumbAsset.description || title;
+          }
+        } else if (contentTypeId === 'singleEntry') {
+          const mediaAsset = fields.media?.sys?.id ? assetsMap[fields.media.sys.id] : null;
+          if (mediaAsset) {
+            if (mediaAsset.contentType.startsWith('video')) {
+              itemType = 'videos';
+            } else if (mediaAsset.contentType.startsWith('audio')) {
+              itemType = 'audio';
+            } else if (mediaAsset.contentType.includes('document')) {
+              itemType = 'documents';
+            } else if (mediaAsset.contentType.startsWith('image')) {
+              itemType = 'image';
+            }
+            imageUrl = mediaAsset.url;
+            imageAlt = mediaAsset.description || title;
+          } else if (fields.videoEmbedUrl) {
+            itemType = 'video';
+            const videoId = extractYouTubeVideoId(fields.videoEmbedUrl);
+            if (videoId) {
+              imageUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+              imageAlt = `YouTube Video: ${title}`;
+            }
+          }
+        }
+
+        const div = document.createElement('div');
+        div.className = 'archive-item';
+        div.setAttribute('data-title', title.toLowerCase());
+        div.setAttribute('data-date', date);
+        div.setAttribute('data-location', locationTags);
+        div.setAttribute('data-type', itemType);
+
+        let imageHtml = '';
+        if (imageUrl) {
+          imageHtml = `<img src="${imageUrl}" alt="${imageAlt}">`;
+        }
+
+        div.innerHTML = `
+          <a href="entry.html?id=${item.sys.id}">
+            ${imageHtml}
+            <div class="item-text">
+              <strong>${title}</strong><br />
+              ${locationText}<br/>
+              ${date}
+            </div>
+          </a>
+        `;
+
+        grid.appendChild(div);
+      });
+
+      // FILTER HANDLERS
+      function applyFilters() {
+        const items = document.querySelectorAll('.archive-item');
+        items.forEach(item => {
+          const matchesLocation = activeFilters.location.size === 0 || Array.from(activeFilters.location).some(location => item.dataset.location.includes(location));
+          const matchesType = activeFilters.type.size === 0 || activeFilters.type.has(item.dataset.type);
+          item.style.display = (matchesLocation && matchesType) ? 'block' : 'none';
+        });
+      }
+
+      document.querySelectorAll('.filter-tags button').forEach(button => {
+        button.addEventListener('click', () => {
+          const type = button.dataset.filterType;
+          const value = button.dataset.value.toLowerCase();
+          if (!activeFilters[type]) return;
+
+          // Special handling for item types with multiple values
+          if (type === 'type') {
+            const hasActiveType = Array.from(activeFilters.type).includes(value);
+            if (hasActiveType) {
+              activeFilters.type.clear();
+            } else {
+              activeFilters.type.clear();
+              activeFilters.type.add(value);
+            }
+            document.querySelectorAll('.filter-tags button[data-filter-type="type"]').forEach(btn => {
+              btn.classList.remove('active-filter');
+            });
+            if (!hasActiveType) {
+              button.classList.add('active-filter');
+            }
+          } else {
+            // Regular toggle for other filters
+            if (activeFilters[type].has(value)) {
+              activeFilters[type].delete(value);
+              button.classList.remove('active-filter');
+            } else {
+              activeFilters[type].add(value);
+              button.classList.add('active-filter');
+            }
+          }
+          applyFilters();
+        });
+      });
+
+      // SORTING
+      function sortItems(by, direction) {
+        const items = Array.from(grid.children);
+        items.sort((a, b) => {
+          const valA = a.dataset[by];
+          const valB = b.dataset[by];
+          if (by === 'date') {
+            return direction === 'asc' ? valA - valB : valB - valA;
+          } else {
+            return direction === 'asc'
+              ? valA.localeCompare(valB)
+              : valB.localeCompare(valA);
+          }
+        });
+        items.forEach(item => grid.appendChild(item));
+      }
+
+      document.getElementById('sort-date').addEventListener('change', e => {
+        if (e.target.value) sortItems('date', e.target.value);
+      });
+      document.getElementById('sort-name').addEventListener('change', e => {
+        if (e.target.value) sortItems('title', e.target.value);
+      });
+
+      // SEARCH
+      const searchInput = document.getElementById('search-input');
+      function performSearch() {
+        const query = searchInput.value.trim().toLowerCase();
+        const items = document.querySelectorAll('.archive-item');
+        items.forEach(item => {
+          const title = item.dataset.title || '';
+          item.style.display = title.includes(query) ? 'block' : 'none';
+        });
+      }
+      searchInput.addEventListener('input', performSearch);
+
+      // RESET FILTERS
+      function resetFilters() {
+        Object.keys(activeFilters).forEach(type => activeFilters[type].clear());
+        document.querySelectorAll('.archive-item').forEach(item => {
+          item.style.display = 'block';
+        });
+        document.querySelectorAll('.filter-tags button').forEach(button => {
+          button.classList.remove('active-filter');
+        });
+      }
+      // You'll likely need a button to call resetFilters, e.g.:
+      // document.getElementById('reset-filters-button').addEventListener('click', resetFilters);
+    })
+    .catch(error => {
+      console.error('Contentful error:', error);
     });
-  });
 </script>
+
 </body>
 
 </html>

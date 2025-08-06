@@ -152,6 +152,21 @@ input[type="text"] {
   cursor: pointer;
   font-size: 0.9rem;
   font-family: 'PT Mono', monospace;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  align-items: center;
+}
+
+.filter-tags img{
+  max-width: 30px;
+  max-height: 20px;
+  fill:#1e1e1e;
+}
+
+.filter-tags button:hover img,
+.filter-tags button.active-filter img {
+  filter: invert(1); /* Inverts the icon color to white */
 }
 
 .filter-tags button.active-filter {

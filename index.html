@@ -122,27 +122,35 @@
   }
 
   function resolveLocationAndIsland(entry) {
-    let locationName = 'unknown location';
-    let islandName = 'unknown island';
-    let safeIslandText = 'unknown';
+    let locationsData = [];
+    const locationRefs = entry.fields.location;
 
-    if (entry.fields.location?.sys?.id) {
-      const locationEntry = allRelatedEntries.find(e => e.sys.id === entry.fields.location.sys.id);
+    // Handle both single reference and multiple references
+    const locationsArray = Array.isArray(locationRefs) ? locationRefs : (locationRefs ? [locationRefs] : []);
 
-      if (locationEntry?.fields) {
-        locationName = locationEntry.fields.geolocation || 'unknown location';
-        const islandRef = locationEntry.fields.island;
+    if (locationsArray.length > 0) {
+      locationsArray.forEach(locationRef => {
+        const locationEntry = allRelatedEntries.find(e => e.sys.id === locationRef.sys.id);
+        if (locationEntry?.fields) {
+          const locationName = locationEntry.fields.geolocation || 'unknown location';
+          const islandRef = locationEntry.fields.island;
+          let islandName = 'unknown island';
+          let safeIslandText = 'unknown';
 
-        if (islandRef?.sys?.id) {
-          const islandEntry = allRelatedEntries.find(e => e.sys.id === islandRef.sys.id);
-          islandName = islandEntry?.fields?.island || 'unknown island';
-          safeIslandText = islandName.toLowerCase();
-        } else if (locationName) {
-          safeIslandText = locationName.toLowerCase();
+          if (islandRef?.sys?.id) {
+            const islandEntry = allRelatedEntries.find(e => e.sys.id === islandRef.sys.id);
+            islandName = islandEntry?.fields?.island || 'unknown island';
+            safeIslandText = islandName.toLowerCase();
+          } else if (locationName) {
+            safeIslandText = locationName.toLowerCase();
+          }
+          locationsData.push({ locationName, islandName, safeIslandText });
         }
-      }
+      });
+    } else {
+      locationsData.push({ locationName: 'unknown location', islandName: 'unknown island', safeIslandText: 'unknown' });
     }
-    return { locationName, islandName, safeIslandText };
+    return locationsData;
   }
 
   function groupEntries(entries) {
@@ -150,29 +158,31 @@
     const locationCounts = {};
 
     entries.forEach(entry => {
-      const { locationName, safeIslandText } = resolveLocationAndIsland(entry);
-
-      // Use locationName as key for locationCounts
-      if (!locationCounts[locationName.toLowerCase()]) {
-        locationCounts[locationName.toLowerCase()] = { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
-      }
-
-      // Use safeIslandText as key for islandCounts
-      if (!islandCounts[safeIslandText]) {
-        islandCounts[safeIslandText] = { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
-      }
-
+      const locationsData = resolveLocationAndIsland(entry);
       const type = entry.fields.fileType?.toLowerCase() || 'unknown';
 
-      islandCounts[safeIslandText].total++;
-      locationCounts[locationName.toLowerCase()].total++;
+      // Loop through all locations for this single entry
+      locationsData.forEach(locData => {
+        // Use locationName as key for locationCounts
+        const locationKey = locData.locationName.toLowerCase();
+        if (!locationCounts[locationKey]) {
+          locationCounts[locationKey] = { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+        }
+        locationCounts[locationKey].total++;
+        if (type && locationCounts[locationKey][type] !== undefined) {
+          locationCounts[locationKey][type]++;
+        }
 
-      if (type && islandCounts[safeIslandText][type] !== undefined) {
-        islandCounts[safeIslandText][type]++;
-      }
-      if (type && locationCounts[locationName.toLowerCase()][type] !== undefined) {
-        locationCounts[locationName.toLowerCase()][type]++;
-      }
+        // Use safeIslandText as key for islandCounts
+        const islandKey = locData.safeIslandText;
+        if (!islandCounts[islandKey]) {
+          islandCounts[islandKey] = { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+        }
+        islandCounts[islandKey].total++;
+        if (type && islandCounts[islandKey][type] !== undefined) {
+          islandCounts[islandKey][type]++;
+        }
+      });
     });
 
     return { islandCounts, locationCounts };
@@ -198,8 +208,11 @@
       const title = fields.title || 'Untitled';
       const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown year';
 
-      const { locationName, islandName } = resolveLocationAndIsland(item);
-      const locationText = `${locationName}, ${islandName}`;
+      // Get the array of locations
+      const locationsData = resolveLocationAndIsland(item);
+      const locationNames = locationsData.map(loc => loc.locationName).join(', ');
+      const islandNames = locationsData.map(loc => loc.islandName).join(', ');
+      const locationText = `${locationNames}, ${islandNames}`;
 
       let imageUrl = null;
 
@@ -240,7 +253,8 @@
         ${imageHtml}
         <div class="card-text">
           <h3>${title}</h3>
-          <p>${date} — ${locationText}</p>
+          <p>${date} </p>
+          <p>${locationText}</p>
         </div>
       `;
 
@@ -271,21 +285,19 @@
         const filterType = button.dataset.filterType;
         let filteredEntries = [];
 
-        if (type === 'island') {
-          filteredEntries = allEntries.filter(entry => {
-            const { safeIslandText } = resolveLocationAndIsland(entry);
-            const matchesIsland = safeIslandText === selectedName;
-            const matchesType = filterType === 'all' || (entry.fields.fileType?.toLowerCase() === filterType);
-            return matchesIsland && matchesType;
-          });
-        } else if (type === 'location') {
-          filteredEntries = allEntries.filter(entry => {
-            const { locationName } = resolveLocationAndIsland(entry);
-            const matchesLocation = locationName.toLowerCase() === selectedName;
-            const matchesType = filterType === 'all' || (entry.fields.fileType?.toLowerCase() === filterType);
-            return matchesLocation && matchesType;
-          });
-        }
+        filteredEntries = allEntries.filter(entry => {
+          const locationsData = resolveLocationAndIsland(entry);
+          let matchesName = false;
+
+          if (type === 'island') {
+            matchesName = locationsData.some(loc => loc.safeIslandText === selectedName);
+          } else if (type === 'location') {
+            matchesName = locationsData.some(loc => loc.locationName.toLowerCase() === selectedName);
+          }
+          
+          const matchesType = filterType === 'all' || (entry.fields.fileType?.toLowerCase() === filterType);
+          return matchesName && matchesType;
+        });
 
         renderPreviewItems(filteredEntries);
         document.getElementById('archive-overlay').classList.remove('hidden');
@@ -340,9 +352,9 @@
       const island = props.island?.toLowerCase().trim();
       const stats = islandCounts[island] || { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
 
-      document.getElementById('sidebar-title').textContent = props.island || "Unknown Island";
+      document.getElementById('sidebar-title').textContent = props.island || "";
       document.getElementById('sidebar-subtitle').textContent = "";
-      document.getElementById('sidebar-description').textContent = props.description || "No description available.";
+      document.getElementById('sidebar-description').textContent = props.description || "";
 
       document.getElementById('archive-buttons').innerHTML = `
         <button id="btn-all" data-filter-type="all">View All (${stats.total})</button>

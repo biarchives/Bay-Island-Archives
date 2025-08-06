@@ -74,11 +74,49 @@
       // --- 1. TITLE & METADATA ---
       document.getElementById('entry-title').textContent = fields.title || 'Untitled';
       const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown Year';
-      const locationEntry = relatedEntriesMap[fields.location?.sys?.id];
-      const locationName = locationEntry?.fields.geolocation || 'Unknown Location';
-      const islandEntry = relatedEntriesMap[locationEntry?.fields.island?.sys?.id];
-      const islandName = islandEntry?.fields.island || '';
-      document.getElementById('entry-meta').innerHTML = `${locationName}${islandName ? ', ' + islandName : ''}<br>${date}`;
+      // A reusable function to resolve locations
+      function resolveLocationAndIsland(entry) {
+        let locationsData = [];
+        const locationRefs = entry.fields.location;
+        const locationsArray = Array.isArray(locationRefs) ? locationRefs : (locationRefs ? [locationRefs] : []);
+
+        locationsArray.forEach(locationRef => {
+          const locationEntry = relatedEntriesMap[locationRef.sys.id];
+          if (locationEntry?.fields) {
+            let locationName = 'Unknown Location';
+            let islandName = 'Unknown Island';
+
+            const islandRef = locationEntry.fields.island;
+            if (islandRef?.sys?.id) {
+              const islandEntry = relatedEntriesMap[islandRef.sys.id];
+              islandName = islandEntry?.fields?.island || 'Unknown Island';
+            }
+
+            if (locationEntry.fields.geolocation) {
+              locationName = locationEntry.fields.geolocation;
+            } else {
+              locationName = islandName;
+            }
+
+            locationsData.push({ locationName, islandName });
+          }
+        });
+
+        if (locationsData.length === 0) {
+          locationsData.push({ locationName: 'Unknown Location', islandName: '' });
+        }
+        return locationsData;
+      }
+
+      const locationsData = resolveLocationAndIsland(entry);
+      const formattedLocations = locationsData.map(loc => {
+        if (loc.locationName && loc.islandName && loc.locationName !== loc.islandName) {
+          return `${loc.locationName}, ${loc.islandName}`;
+        }
+        return loc.locationName;
+      }).join('; ');
+
+      document.getElementById('entry-meta').innerHTML = `${formattedLocations}<br>${date}`;
       const descriptionRichText = fields.description?.content;
       if (descriptionRichText) {
         let descriptionText = '';

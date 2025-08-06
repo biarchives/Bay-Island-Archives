@@ -53,10 +53,21 @@
           <h2>Item Type</h2>
           <div class="filter-tags">
             <div class="filter-tags">
-              <button data-filter-type="type" data-value="image">🖼 Image</button>
-              <button data-filter-type="type" data-value="text">🅣 Text</button>
-              <button data-filter-type="type" data-value="video">🎥 Video</button>
-              <button data-filter-type="type" data-value="audio">🔊 Audio</button>
+              <button data-filter-type="type" data-value="album">
+                <img src="icons/album-icon.svg" alt="Album Icon"> Album
+              </button>
+              <button data-filter-type="type" data-value="image">
+                <img src="icons/image-icon.svg" alt="Image Icon"> Image
+              </button>
+              <button data-filter-type="type" data-value="document">
+                <img src="icons/document-icon.svg" alt="Document Icon"> Document
+              </button>
+              <button data-filter-type="type" data-value="video">
+                <img src="icons/video-icon.svg" alt="Video Icon"> Video
+              </button>
+              <button data-filter-type="type" data-value="audio">
+                <img src="icons/audio-icon.svg" alt="Audio Icon"> Audio
+              </button>
             </div>
           </div>
         </div>
@@ -100,6 +111,41 @@
     type: new Set()
   };
 
+  function resolveLocationAndIsland(item, allRelatedEntries) {
+    let locationsData = [];
+    const locationRefs = item.fields.location;
+
+    // Handle both single and multiple references
+    const locationsArray = Array.isArray(locationRefs) ? locationRefs : (locationRefs ? [locationRefs] : []);
+
+    locationsArray.forEach(locationRef => {
+      const locationEntry = allRelatedEntries.find(e => e.sys.id === locationRef.sys.id);
+      if (locationEntry?.fields) {
+        let locationName = 'Unknown location';
+        let islandName = 'Unknown island';
+        let safeIslandText = 'unknown';
+
+        const islandRef = locationEntry.fields.island;
+        if (islandRef?.sys?.id) {
+          const islandEntry = allRelatedEntries.find(e => e.sys.id === islandRef.sys.id);
+          islandName = islandEntry?.fields?.island || 'Unknown island';
+          safeIslandText = islandName.toLowerCase();
+        }
+
+        // Prioritize geolocation, then fall back to islandName
+        if (locationEntry.fields.geolocation) {
+          locationName = locationEntry.fields.geolocation;
+        } else if (islandName !== 'Unknown island') {
+          locationName = islandName;
+        }
+
+        locationsData.push({ locationName, islandName, safeIslandText });
+      }
+    });
+
+    return locationsData;
+  }
+
   Promise.all(
     contentTypes.map(type =>
       fetch(`https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&content_type=${type}&include=2`)
@@ -114,123 +160,83 @@
         ...(archivePageData.includes?.Asset || []),
         ...(singleEntryData.includes?.Asset || [])
       ];
-      const allEntries = [
+      const allRelatedEntries = [
         ...(archivePageData.includes?.Entry || []),
         ...(singleEntryData.includes?.Entry || [])
       ];
 
       const grid = document.querySelector('.archive-grid');
 
-      // Create a map for quick asset lookup
       const assetsMap = {};
       allAssets.forEach(asset => {
         if (asset.sys.id && asset.fields?.file?.url) {
           assetsMap[asset.sys.id] = {
             url: `https:${asset.fields.file.url}`,
             description: asset.fields.description || '',
-            contentType: asset.fields.file.contentType // Store contentType for filtering
+            contentType: asset.fields.file.contentType
           };
         }
       });
 
       allItems.forEach(item => {
         const fields = item.fields;
-        const contentTypeId = item.sys.contentType.sys.id; // Get the content type ID
+        const contentTypeId = item.sys.contentType.sys.id;
         const title = fields.title || 'Untitled';
         const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown year';
 
-        // Resolve Location Field
-        let locationText = 'Unknown location';
-        let islandText = 'unknown';
+        const locationsData = resolveLocationAndIsland(item, allRelatedEntries);
+        const locationText = locationsData.map(loc => loc.locationName).join(', ');
+        const locationTags = locationsData.map(loc => loc.safeIslandText).join(',');
 
-        if (fields.location?.sys?.id) {
-          const locationEntry = allEntries.find(e => e.sys.id === fields.location.sys.id);
-
-          if (locationEntry?.fields) {
-            const geoName = locationEntry.fields.geolocation || '';
-            const islandRef = locationEntry.fields.island;
-
-            if (islandRef?.sys?.id) {
-              const islandEntry = allEntries.find(e => e.sys.id === islandRef.sys.id);
-              let islandName = islandEntry?.fields?.island || 'Unknown island';
-
-              locationText = `${geoName}, ${islandName}`;
-              islandText = islandName;
-            } else if (geoName) {
-              locationText = geoName;
-            }
-          }
-        }
-
-        const safeIslandText = typeof islandText === 'string' ? islandText.toLowerCase() : 'unknown';
-
-        // --- DYNAMIC THUMBNAIL AND TYPE LOGIC ---
         function extractYouTubeVideoId(url) {
           const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
           const match = url.match(regex);
           return (match && match[1]) ? match[1] : null;
         }
 
-        let imageUrl = null; // Changed to null to allow for no image
+        let imageUrl = null;
         let imageAlt = `${title} - No Image`;
-        let itemType = 'unknown'; // Default item type for filtering
+        let itemType = 'unknown';
 
-        if (contentTypeId === 'archivePage' && fields.thumbnailImage?.sys?.id) {
-          // Logic for 'Album Entry' (archivePage)
-          const thumbAsset = assetsMap[fields.thumbnailImage.sys.id];
+        // NEW FILTER LOGIC:
+        if (contentTypeId === 'archivePage') {
+          itemType = 'album';
+          const thumbAsset = fields.thumbnailImage?.sys?.id ? assetsMap[fields.thumbnailImage.sys.id] : null;
           if (thumbAsset) {
             imageUrl = thumbAsset.url;
             imageAlt = thumbAsset.description || title;
-            if (thumbAsset.contentType.startsWith('image')) {
-              itemType = 'image';
-            }
           }
-        } else if (contentTypeId === 'singleEntry' && fields.media?.sys?.id) {
-          // Logic for 'Single Entry'
-          const mediaAsset = assetsMap[fields.media.sys.id];
+        } else if (contentTypeId === 'singleEntry') {
+          const mediaAsset = fields.media?.sys?.id ? assetsMap[fields.media.sys.id] : null;
           if (mediaAsset) {
-            if (mediaAsset.contentType.startsWith('image')) {
-              imageUrl = mediaAsset.url;
-              imageAlt = mediaAsset.description || title;
-              itemType = 'image';
-            } else if (mediaAsset.contentType.startsWith('video')) {
-              // Use a placeholder for video thumbnails if a separate thumbnail isn't provided
-              imageUrl = 'https://via.placeholder.com/300x200?text=Video+Entry';
-              imageAlt = `Video: ${title}`;
-              itemType = 'video';
+            if (mediaAsset.contentType.startsWith('video')) {
+              itemType = 'videos';
             } else if (mediaAsset.contentType.startsWith('audio')) {
-              // Use a placeholder for audio thumbnails
-              imageUrl = 'https://via.placeholder.com/300x200?text=Audio+Entry';
-              imageAlt = `Audio: ${title}`;
               itemType = 'audio';
+            } else if (mediaAsset.contentType.includes('document')) {
+              itemType = 'documents';
+            } else if (mediaAsset.contentType.startsWith('image')) {
+              itemType = 'image';
             }
-          }
-        } else if (contentTypeId === 'singleEntry' && fields.videoEmbedUrl) {
-          // CORRECTED Logic for external URL entry (YouTube thumbnail)
-          const videoId = extractYouTubeVideoId(fields.videoEmbedUrl);
-          if (videoId) {
-            // Correct and reliable YouTube thumbnail URL
-            imageUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-            imageAlt = `YouTube Video: ${title}`;
+            imageUrl = mediaAsset.url;
+            imageAlt = mediaAsset.description || title;
+          } else if (fields.videoEmbedUrl) {
             itemType = 'video';
-          } else {
-            // Fallback for non-YouTube external URLs
-            imageUrl = 'https://via.placeholder.com/300x200?text=External+URL';
-            imageAlt = `External Link: ${title}`;
-            itemType = 'link'; // A new type for non-video external links
+            const videoId = extractYouTubeVideoId(fields.videoEmbedUrl);
+            if (videoId) {
+              imageUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+              imageAlt = `YouTube Video: ${title}`;
+            }
           }
         }
-        // --- END DYNAMIC THUMBNAIL AND TYPE LOGIC ---
 
-        // The rest of your code for creating the div and populating it
         const div = document.createElement('div');
         div.className = 'archive-item';
         div.setAttribute('data-title', title.toLowerCase());
         div.setAttribute('data-date', date);
-        div.setAttribute('data-location', safeIslandText);
+        div.setAttribute('data-location', locationTags);
         div.setAttribute('data-type', itemType);
 
-        // Conditionally add the image
         let imageHtml = '';
         if (imageUrl) {
           imageHtml = `<img src="${imageUrl}" alt="${imageAlt}">`;
@@ -254,7 +260,7 @@
       function applyFilters() {
         const items = document.querySelectorAll('.archive-item');
         items.forEach(item => {
-          const matchesLocation = activeFilters.location.size === 0 || activeFilters.location.has(item.dataset.location);
+          const matchesLocation = activeFilters.location.size === 0 || Array.from(activeFilters.location).some(location => item.dataset.location.includes(location));
           const matchesType = activeFilters.type.size === 0 || activeFilters.type.has(item.dataset.type);
           item.style.display = (matchesLocation && matchesType) ? 'block' : 'none';
         });

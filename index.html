@@ -39,12 +39,12 @@
       </div>
       <div class="main-content">
         <div id="map-menu">
-  <button id="menu-toggle-button" aria-expanded="false" aria-controls="menu-content">All Locations</button>
-  <div id="menu-content" class="menu-content" aria-hidden="true">
-    <ul id="island-list" class="island-list">
-      </ul>
-  </div>
-</div>
+          <button id="menu-toggle-button" aria-expanded="false" aria-controls="menu-content">All Locations</button>
+          <div id="menu-content" class="menu-content" aria-hidden="true">
+            <ul id="island-list" class="island-list">
+            </ul>
+          </div>
+        </div>
         <div id="sidebar" class="hidden" aria-hidden="true">
           <button id="back-button">← Back to Map</button>
           <h2 id="sidebar-title"></h2>
@@ -319,23 +319,23 @@
   map.scrollZoom.disable();
 
   function showSidebarAndFlyTo(props, location, island, coordinates) {
-      if (!coordinates) return;
+    if (!coordinates) return;
 
-      map.flyTo({
-        center: coordinates,
-        zoom: 12,
-        speed: 1,
-        curve: 1,
-        essential: true
-      });
+    map.flyTo({
+      center: coordinates,
+      zoom: 12,
+      speed: 1,
+      curve: 1,
+      essential: true
+    });
 
-      const stats = locationCounts[location.toLowerCase()] || { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, documents: 0 };
-      
-      document.getElementById('sidebar-title').textContent = location || "Untitled Location";
-      document.getElementById('sidebar-subtitle').textContent = island || "";
-      document.getElementById('sidebar-description').textContent = props.description || "";
+    const stats = locationCounts[location.toLowerCase()] || { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, documents: 0 };
 
-      document.getElementById('archive-buttons').innerHTML = `
+    document.getElementById('sidebar-title').textContent = location || "Untitled Location";
+    document.getElementById('sidebar-subtitle').textContent = island || "";
+    document.getElementById('sidebar-description').textContent = props.description || "";
+
+    document.getElementById('archive-buttons').innerHTML = `
         <button id="btn-all" data-filter-type="all">View All (${stats.total})</button>
         <button id="btn-albums" data-filter-type="albums">Albums (${stats.albums})</button>
         <button id="btn-photos" data-filter-type="photos">Photos (${stats.photos})</button>
@@ -343,9 +343,9 @@
         <button id="btn-audio" data-filter-type="audio">Audio (${stats.audio})</button>
         <button id="btn-documents" data-filter-type="documents">Documents (${stats.documents})</button>
       `;
-      document.getElementById('sidebar').classList.remove('hidden');
-      document.getElementById('sidebar').setAttribute('aria-hidden', 'false');
-      attachButtonListeners(location.toLowerCase(), 'location');
+    document.getElementById('sidebar').classList.remove('hidden');
+    document.getElementById('sidebar').setAttribute('aria-hidden', 'false');
+    attachButtonListeners(location.toLowerCase(), 'location');
   }
 
   function showIslandSidebar(islandName, islandDescription) {
@@ -401,7 +401,7 @@
   function hideMapMenu() {
     document.getElementById('map-menu').classList.add('hidden-menu');
   }
-  
+
   function showMapMenu() {
     document.getElementById('map-menu').classList.remove('hidden-menu');
   }
@@ -417,7 +417,7 @@
         islandsData[loc.islandName].locations.add(loc.locationName);
       });
     });
-    
+
     const islandList = document.getElementById('island-list');
     islandList.innerHTML = '';
     const sortedIslands = Object.keys(islandsData).sort();
@@ -432,7 +432,7 @@
       const locationsForIsland = Array.from(islandsData[islandName].locations);
 
       const hasGeolocations = locationsForIsland.length > 1 || (locationsForIsland.length === 1 && locationsForIsland[0] !== islandName);
-      
+
       if (hasGeolocations) {
         const locationList = document.createElement('ul');
         locationList.classList.add('location-list');
@@ -446,8 +446,8 @@
         const sortedLocations = locationsForIsland.sort((a, b) => a.localeCompare(b));
 
         sortedLocations.forEach(locationName => {
-          if (locationName === 'Unknown Location') return;
-          
+          if (locationName === 'Unknown Location' || locationName === islandName) return;
+
           const locationItem = document.createElement('li');
           locationItem.textContent = locationName;
           locationItem.classList.add('location-item');
@@ -457,7 +457,7 @@
             event.stopPropagation();
             const clickedLocationName = event.target.dataset.locationName;
             const clickedIslandName = event.target.dataset.islandName;
-            
+
             const features = map.querySourceFeatures('composite', {
               sourceLayer: 'BIArchives_Geolocations',
               filter: [
@@ -479,7 +479,7 @@
           });
           locationList.appendChild(locationItem);
         });
-        
+
         islandItem.appendChild(locationList);
         islandList.appendChild(islandItem);
       } else {
@@ -497,7 +497,7 @@
     const counts = groupEntries(allEntries);
     islandCounts = counts.islandCounts;
     locationCounts = counts.locationCounts;
-    
+
     populateMapMenu();
 
     const hoverPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });

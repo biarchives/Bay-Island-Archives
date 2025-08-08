@@ -184,11 +184,11 @@ a:visited {
   transition: transform 0.3s ease-in-out;
   background-color: #3E6A41;
   border-radius: 5px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   padding: 10px;
   max-width: 250px;
   border: 2px solid #1E1E1E;
   min-height: auto;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 #map-menu.hidden-menu {

@@ -71,7 +71,7 @@
             </div>
           </div>
         </div>
-        <button onclick="resetFilters()">Reset Filters</button>
+        <button id="reset-filters-button">Reset Filters</button>
 
       </aside>
 
@@ -88,7 +88,7 @@
 </body>
 
 <script>
- // Load the header
+  // Load the header
   fetch('base/header.html')
     .then(response => response.text())
     .then(data => {
@@ -97,7 +97,7 @@
       // This is where you add the code to set the active link
       const currentPage = window.location.pathname.split('/').pop().replace('.html', '');
       const activeLink = document.querySelector(`[data-page="${currentPage}"]`);
-      
+
       if (activeLink) {
         activeLink.classList.add('active');
       }
@@ -377,6 +377,10 @@
           button.classList.remove('active-filter');
         });
       }
+
+      // Add the event listener to the reset button
+      document.getElementById('reset-filters-button').addEventListener('click', resetFilters);
+
     })
     .catch(error => {
       console.error('Contentful error:', error);

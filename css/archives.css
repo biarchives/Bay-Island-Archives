@@ -49,24 +49,23 @@ h3 {
   display: flex;
   flex-direction: column;
   max-width: 1200px;
-  margin: 30px auto;
+  margin: 5rem auto 30px;
 }
 
 .description {
   margin: 0.5rem 0 1.5rem;
+  text-align: left;
 }
 
 .search-container {
   background-color: #f7f7f7;
   border: 2px solid black;
   padding: 20px 30px;
-  /* Less padding */
   border-radius: 25px;
   gap: 2rem;
   box-shadow: 0 0 2px black inset;
   display: grid;
   grid-template-columns: 1fr 2fr;
-  /* Less gap between items */
   color: black;
   overflow: hidden;
   min-width: 1100px;
@@ -98,6 +97,8 @@ h3 {
   cursor: pointer;
   font-size: 0.9rem;
   font-family: 'PT Mono', monospace;
+  flex-grow: 1;
+  /* Makes selects take up equal width */
 }
 
 /* ===== Sidebar Filters ===== */
@@ -158,15 +159,15 @@ input[type="text"] {
   align-items: center;
 }
 
-.filter-tags img{
+.filter-tags img {
   max-width: 30px;
   max-height: 20px;
-  fill:#1e1e1e;
+  fill: #1e1e1e;
 }
 
 .filter-tags button:hover img,
 .filter-tags button.active-filter img {
-  filter: invert(1); /* Inverts the icon color to white */
+  filter: invert(1);
 }
 
 .filter-tags button.active-filter {
@@ -186,7 +187,6 @@ input[type="text"] {
   flex: 3;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  /* Always 3 columns */
   gap: 1rem;
   max-height: 70vh;
   overflow-y: auto;
@@ -210,10 +210,8 @@ input[type="text"] {
 .archive-item .item-text strong {
   font-family: "OdibeeSans", sans-serif;
   font-size: 20px;
-  /* Optional: adjust size */
   text-transform: uppercase;
   display: block;
-  /* Makes margin-bottom work as expected */
   text-decoration: none;
 }
 
@@ -262,22 +260,9 @@ input[type="text"] {
 
 
 /* ===== Responsive ===== */
-@media (max-width: 900px) {
-  .footer-content {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+@media (max-width: 768px) {
 
-  .site-main {
-    padding: 1rem;
-  }
-
-  .archive-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 600px) {
+  /* Header */
   .site-header {
     padding: 1rem;
   }
@@ -288,24 +273,135 @@ input[type="text"] {
   }
 
   .nav-links {
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
   }
 
   .nav-links a {
-    width: 100%;
+    width: auto;
     text-align: center;
     margin: 0.5rem 0;
   }
 
-  .filters {
-    max-width: 100%;
-    margin-bottom: 1rem;
+  /* Main Content */
+  .site-main {
+    margin-top: 2rem;
+    padding: 0 1rem;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  .description {
+    text-align: center;
+    padding: 0 1rem;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .search-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 90%;
+    min-width: 0;
+    /* This is the key fix */
+    margin: 0 auto;
+    padding: 1rem;
+    box-sizing: border-box;
+  }
+
+  /* Search & Sort Controls */
+  .search-bar {
+    width: 100%;
+    margin-bottom: 0;
+  }
+
+  .search-bar input {
+    width: 100%;
+  }
+
+  .sort-controls {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: scroll;
+    -webkit-overflow-scrolling: touch;
+    gap: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sort-controls select {
+    flex-shrink: 0;
+    width: 100%;
+  }
+
+  /* Filters */
+  .filters {
+    width: 100%;
+    border: none;
+    box-sizing: border-box;
+    margin: -20px -10px;
+  }
+
+  .filter-section {
+    overflow: hidden;
+  }
+
+  .filters h2 {
+    text-align: left;
+    font-size: 20px;
+  }
+
+  .filter-tags {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: scroll;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    gap: 0.5rem;
+    justify-content: flex-start;
+  }
+
+  .filter-tags button {
+    flex-shrink: 1;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .filter-tags img {
+    max-width: 20px;
+    max-height: 20px;
+  }
+
+  /* Archive Grid */
+  .archive-grid {
     grid-template-columns: 1fr;
-    /* Stack search bar and sort controls */
-    gap: 1rem;
+    max-height: none;
+    overflow-y: visible;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .archive-item {
+    max-width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+  }
+
+  /* Footer */
+  .footer-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .footer-left {
+    align-items: center;
   }
 }

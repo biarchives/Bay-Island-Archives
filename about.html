@@ -75,11 +75,19 @@
 </body>
 <script>
 
-  // Load the header
+// Load the header
   fetch('base/header.html')
     .then(response => response.text())
     .then(data => {
       document.getElementById('header-placeholder').innerHTML = data;
+
+      // This is where you add the code to set the active link
+      const currentPage = window.location.pathname.split('/').pop().replace('.html', '');
+      const activeLink = document.querySelector(`[data-page="${currentPage}"]`);
+      
+      if (activeLink) {
+        activeLink.classList.add('active');
+      }
     });
 
   // Load the footer

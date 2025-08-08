@@ -38,7 +38,14 @@
           a nomadic tribe, with roots throughout Central America. </p>
       </div>
       <div class="main-content">
-        <div id="sidebar" class="hidden">
+        <div id="map-menu">
+  <button id="menu-toggle-button" aria-expanded="false" aria-controls="menu-content">All Locations</button>
+  <div id="menu-content" class="menu-content" aria-hidden="true">
+    <ul id="island-list" class="island-list">
+      </ul>
+  </div>
+</div>
+        <div id="sidebar" class="hidden" aria-hidden="true">
           <button id="back-button">← Back to Map</button>
           <h2 id="sidebar-title"></h2>
           <h3 id="sidebar-subtitle"></h3>
@@ -47,9 +54,9 @@
           <div id="archive-buttons"> </div>
         </div>
         <!-- Archive Overlay -->
-        <div id="archive-overlay" class="hidden">
+        <div id="archive-overlay" class="hidden" aria-hidden="true">
           <div class="overlay-content">
-            <div id="archive-previews"></div>
+            <div id="archive-previews" role="status" aria-live="polite"></div>
             <!-- JS will populate this with archive previews -->
           </div>
         </div>
@@ -89,7 +96,6 @@
 <script>
   const spaceId = 'yp5hut9gr3i4';
   const accessToken = '6cmQ6BIqhbITci25VJRJxasRNDvkKb_74mYDBAKfPdY';
-  // Use both content types to ensure all entries are fetched
   const contentTypes = ['archivePage', 'singleEntry'];
 
   let allEntries = [];
@@ -99,7 +105,6 @@
   let locationCounts = {};
   let lastSelectedIsland = null;
 
-  // Store default map settings in constants for easy reuse
   const defaultCenter = [-86.326, 16.125];
   const defaultZoom = 9;
 
@@ -125,67 +130,90 @@
     let locationsData = [];
     const locationRefs = entry.fields.location;
 
-    // Handle both single reference and multiple references
     const locationsArray = Array.isArray(locationRefs) ? locationRefs : (locationRefs ? [locationRefs] : []);
 
     if (locationsArray.length > 0) {
       locationsArray.forEach(locationRef => {
         const locationEntry = allRelatedEntries.find(e => e.sys.id === locationRef.sys.id);
-        if (locationEntry?.fields) {
-          const locationName = locationEntry.fields.geolocation || 'unknown location';
-          const islandRef = locationEntry.fields.island;
-          let islandName = 'unknown island';
+        if (locationEntry?.fields && locationEntry.sys.contentType) {
+          const contentTypeId = locationEntry.sys.contentType.sys.id;
+          let locationName = 'Unknown Location';
+          let islandName = 'Unknown Island';
           let safeIslandText = 'unknown';
 
-          if (islandRef?.sys?.id) {
-            const islandEntry = allRelatedEntries.find(e => e.sys.id === islandRef.sys.id);
-            islandName = islandEntry?.fields?.island || 'unknown island';
+          if (contentTypeId === 'geolocation') {
+            const islandRef = locationEntry.fields.island;
+            if (islandRef?.sys?.id) {
+              const islandEntry = allRelatedEntries.find(e => e.sys.id === islandRef.sys.id);
+              islandName = islandEntry?.fields?.island || 'Unknown Island';
+            }
+            if (locationEntry.fields.geolocation) {
+              locationName = locationEntry.fields.geolocation;
+            } else {
+              locationName = islandName;
+            }
             safeIslandText = islandName.toLowerCase();
-          } else if (locationName) {
-            safeIslandText = locationName.toLowerCase();
+          } else if (contentTypeId === 'island') {
+            islandName = locationEntry.fields.island || 'Unknown Island';
+            locationName = islandName;
+            safeIslandText = islandName.toLowerCase();
           }
-          locationsData.push({ locationName, islandName, safeIslandText });
+
+          locationsData.push({ locationName, islandName, safeIslandText, coordinates: locationEntry.fields.coordinates, description: locationEntry.fields.description });
         }
       });
     } else {
-      locationsData.push({ locationName: 'unknown location', islandName: 'unknown island', safeIslandText: 'unknown' });
+      locationsData.push({ locationName: 'Unknown Location', islandName: 'Unknown Island', safeIslandText: 'unknown', coordinates: null, description: null });
     }
     return locationsData;
   }
 
   function groupEntries(entries) {
-    const islandCounts = {};
-    const locationCounts = {};
+    const newIslandCounts = {};
+    const newLocationCounts = {};
 
     entries.forEach(entry => {
       const locationsData = resolveLocationAndIsland(entry);
-      const type = entry.fields.fileType?.toLowerCase() || 'unknown';
+      const contentTypeId = entry.sys.contentType.sys.id;
+      let type = 'unknown';
 
-      // Loop through all locations for this single entry
+      if (contentTypeId === 'archivePage') {
+        type = 'albums';
+      } else if (contentTypeId === 'singleEntry') {
+        const mediaAsset = entry.fields.media?.sys?.id ? allAssets.find(a => a.sys.id === entry.fields.media.sys.id) : null;
+        if (mediaAsset) {
+          if (mediaAsset.fields.file.contentType.startsWith('video')) type = 'videos';
+          else if (mediaAsset.fields.file.contentType.startsWith('audio')) type = 'audio';
+          else if (mediaAsset.fields.file.contentType.includes('pdf')) type = 'documents';
+          else if (mediaAsset.fields.file.contentType.startsWith('image')) type = 'photos';
+        } else if (entry.fields.videoEmbedUrl) {
+          type = 'videos';
+        }
+      }
+      entry.fileType = type;
+
       locationsData.forEach(locData => {
-        // Use locationName as key for locationCounts
         const locationKey = locData.locationName.toLowerCase();
-        if (!locationCounts[locationKey]) {
-          locationCounts[locationKey] = { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+        if (!newLocationCounts[locationKey]) {
+          newLocationCounts[locationKey] = { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, documents: 0, coordinates: locData.coordinates, description: locData.description };
         }
-        locationCounts[locationKey].total++;
-        if (type && locationCounts[locationKey][type] !== undefined) {
-          locationCounts[locationKey][type]++;
+        newLocationCounts[locationKey].total++;
+        if (type && newLocationCounts[locationKey][type] !== undefined) {
+          newLocationCounts[locationKey][type]++;
         }
 
-        // Use safeIslandText as key for islandCounts
         const islandKey = locData.safeIslandText;
-        if (!islandCounts[islandKey]) {
-          islandCounts[islandKey] = { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+        if (!newIslandCounts[islandKey]) {
+          newIslandCounts[islandKey] = { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, documents: 0 };
         }
-        islandCounts[islandKey].total++;
-        if (type && islandCounts[islandKey][type] !== undefined) {
-          islandCounts[islandKey][type]++;
+        newIslandCounts[islandKey].total++;
+        if (type && newIslandCounts[islandKey][type] !== undefined) {
+          newIslandCounts[islandKey][type]++;
         }
       });
     });
 
-    return { islandCounts, locationCounts };
+    return { islandCounts: newIslandCounts, locationCounts: newLocationCounts };
   }
 
   function extractYouTubeVideoId(url) {
@@ -198,29 +226,38 @@
     const previewContainer = document.getElementById('archive-previews');
     previewContainer.innerHTML = '';
 
-    if (entries.length === 0) {
-      previewContainer.innerHTML = '<p>No entries found.</p>';
-      return;
-    }
-
     entries.forEach(item => {
       const fields = item.fields;
       const title = fields.title || 'Untitled';
       const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown year';
 
-      // Get the array of locations
       const locationsData = resolveLocationAndIsland(item);
-      const locationNames = locationsData.map(loc => loc.locationName).join(', ');
-      const islandNames = locationsData.map(loc => loc.islandName).join(', ');
-      const locationText = `${locationNames}, ${islandNames}`;
+      const locationNames = locationsData.map(loc => {
+        if (loc.locationName !== loc.islandName && loc.locationName !== 'Unknown Location') {
+          return `${loc.locationName}, ${loc.islandName}`;
+        }
+        return loc.locationName;
+      }).join(' & ');
 
       let imageUrl = null;
+      let thumbnailClass = ''
 
-      // Thumbnail Image Logic: Prioritize media, then thumbnailImage, then imageGallery, then.videoEmbedUrl) l) {
-      if (fields.media?.sys?.id) {
-        const mediaAsset = allAssets.find(a => a.sys.id === fields.media.sys.id);
-        if (mediaAsset?.fields?.file?.url && mediaAsset.fields.file.contentType.startsWith('image/')) {
+      const mediaAsset = fields.media?.sys?.id ? allAssets.find(a => a.sys.id === fields.media.sys.id) : null;
+      if (mediaAsset?.fields?.file?.url) {
+        const contentType = mediaAsset.fields.file.contentType;
+        if (contentType.startsWith('image/')) {
           imageUrl = `https:${mediaAsset.fields.file.url}`;
+        } else if (contentType.includes('pdf')) {
+          const thumbAsset = fields.thumbnailImage?.sys?.id ? allAssets.find(a => a.sys.id === fields.thumbnailImage.sys.id) : null;
+          if (thumbAsset?.fields?.file?.url) {
+            imageUrl = `https:${thumbAsset.fields.file.url}`;
+          } else {
+            imageUrl = 'icons/document-icon.svg';
+            thumbnailClass = 'icon-thumbnail';
+          }
+        } else if (contentType.startsWith('audio')) {
+          imageUrl = 'icons/audio-icon.svg';
+          thumbnailClass = 'icon-thumbnail';
         }
       } else if (fields.thumbnailImage?.sys?.id) {
         const thumbAsset = allAssets.find(a => a.sys.id === fields.thumbnailImage.sys.id);
@@ -235,15 +272,13 @@
       } else if (fields.videoEmbedUrl) {
         const videoId = extractYouTubeVideoId(fields.videoEmbedUrl);
         if (videoId) {
-          // Standard YouTube thumbnail URL
           imageUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
         }
       }
 
-      // Conditionally create the image HTML
       let imageHtml = '';
       if (imageUrl) {
-        imageHtml = `<img src="${imageUrl}" alt="${title}" />`;
+        imageHtml = `<img src="${imageUrl}" alt="${title}" class="${thumbnailClass}"/>`;
       }
 
       const cardLink = document.createElement('a');
@@ -254,7 +289,7 @@
         <div class="card-text">
           <h3>${title}</h3>
           <p>${date} </p>
-          <p>${locationText}</p>
+          <p>${locationNames}</p>
         </div>
       `;
 
@@ -265,6 +300,11 @@
 
       previewContainer.appendChild(cardLink);
     });
+
+    if (entries.length === 0) {
+      previewContainer.innerHTML = '<p>No entries found.</p>';
+      return;
+    }
   }
 
   mapboxgl.accessToken = 'pk.eyJ1IjoiYmlhcmNoaXZlcyIsImEiOiJjbWRtZDRmMjIxa3JlMmpxMWIyM2ZleHVoIn0.qAlCMwvS56lvr7AbC2Iuug';
@@ -277,6 +317,58 @@
 
   map.addControl(new mapboxgl.NavigationControl());
   map.scrollZoom.disable();
+
+  function showSidebarAndFlyTo(props, location, island, coordinates) {
+      if (!coordinates) return;
+
+      map.flyTo({
+        center: coordinates,
+        zoom: 12,
+        speed: 1,
+        curve: 1,
+        essential: true
+      });
+
+      const stats = locationCounts[location.toLowerCase()] || { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, documents: 0 };
+      
+      document.getElementById('sidebar-title').textContent = location || "Untitled Location";
+      document.getElementById('sidebar-subtitle').textContent = island || "";
+      document.getElementById('sidebar-description').textContent = props.description || "";
+
+      document.getElementById('archive-buttons').innerHTML = `
+        <button id="btn-all" data-filter-type="all">View All (${stats.total})</button>
+        <button id="btn-albums" data-filter-type="albums">Albums (${stats.albums})</button>
+        <button id="btn-photos" data-filter-type="photos">Photos (${stats.photos})</button>
+        <button id="btn-videos" data-filter-type="videos">Videos (${stats.videos})</button>
+        <button id="btn-audio" data-filter-type="audio">Audio (${stats.audio})</button>
+        <button id="btn-documents" data-filter-type="documents">Documents (${stats.documents})</button>
+      `;
+      document.getElementById('sidebar').classList.remove('hidden');
+      document.getElementById('sidebar').setAttribute('aria-hidden', 'false');
+      attachButtonListeners(location.toLowerCase(), 'location');
+  }
+
+  function showIslandSidebar(islandName, islandDescription) {
+    const safeIslandName = islandName.toLowerCase().trim();
+    const stats = islandCounts[safeIslandName] || { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, documents: 0 };
+
+    document.getElementById('sidebar-title').textContent = islandName || "";
+    document.getElementById('sidebar-subtitle').textContent = "";
+    document.getElementById('sidebar-description').textContent = islandDescription || "";
+
+    document.getElementById('archive-buttons').innerHTML = `
+      <button id="btn-all" data-filter-type="all">View All (${stats.total})</button>
+      <button id="btn-albums" data-filter-type="albums">Albums (${stats.albums})</button>
+      <button id="btn-photos" data-filter-type="photos">Photos (${stats.photos})</button>
+      <button id="btn-videos" data-filter-type="videos">Videos (${stats.videos})</button>
+      <button id="btn-audio" data-filter-type="audio">Audio (${stats.audio})</button>
+      <button id="btn-documents" data-filter-type="documents">Documents (${stats.documents})</button>
+    `;
+    document.getElementById('sidebar').classList.remove('hidden');
+    document.getElementById('sidebar').setAttribute('aria-hidden', 'false');
+    attachButtonListeners(safeIslandName, 'island');
+    hideMapMenu();
+  }
 
   function attachButtonListeners(selectedName, type) {
     const buttons = document.querySelectorAll('#archive-buttons button');
@@ -294,20 +386,119 @@
           } else if (type === 'location') {
             matchesName = locationsData.some(loc => loc.locationName.toLowerCase() === selectedName);
           }
-          
-          const matchesType = filterType === 'all' || (entry.fields.fileType?.toLowerCase() === filterType);
+          const matchesType = filterType === 'all' || entry.fileType === filterType;
           return matchesName && matchesType;
         });
 
         renderPreviewItems(filteredEntries);
         document.getElementById('archive-overlay').classList.remove('hidden');
+        document.getElementById('archive-overlay').setAttribute('aria-hidden', 'false');
+        hideMapMenu();
       });
+    });
+  }
+
+  function hideMapMenu() {
+    document.getElementById('map-menu').classList.add('hidden-menu');
+  }
+  
+  function showMapMenu() {
+    document.getElementById('map-menu').classList.remove('hidden-menu');
+  }
+
+  function populateMapMenu() {
+    const islandsData = {};
+    allEntries.forEach(entry => {
+      const locations = resolveLocationAndIsland(entry);
+      locations.forEach(loc => {
+        if (!islandsData[loc.islandName]) {
+          islandsData[loc.islandName] = { locations: new Set(), description: loc.description };
+        }
+        islandsData[loc.islandName].locations.add(loc.locationName);
+      });
+    });
+    
+    const islandList = document.getElementById('island-list');
+    islandList.innerHTML = '';
+    const sortedIslands = Object.keys(islandsData).sort();
+
+    sortedIslands.forEach(islandName => {
+      if (islandName === 'Unknown Island') return;
+
+      const islandItem = document.createElement('li');
+      islandItem.textContent = islandName;
+      islandItem.style.fontWeight = 'bold';
+
+      const locationsForIsland = Array.from(islandsData[islandName].locations);
+
+      const hasGeolocations = locationsForIsland.length > 1 || (locationsForIsland.length === 1 && locationsForIsland[0] !== islandName);
+      
+      if (hasGeolocations) {
+        const locationList = document.createElement('ul');
+        locationList.classList.add('location-list');
+        locationList.style.display = 'none';
+
+        islandItem.addEventListener('click', () => {
+          const isHidden = locationList.style.display === 'none';
+          locationList.style.display = isHidden ? 'block' : 'none';
+        });
+
+        const sortedLocations = locationsForIsland.sort((a, b) => a.localeCompare(b));
+
+        sortedLocations.forEach(locationName => {
+          if (locationName === 'Unknown Location') return;
+          
+          const locationItem = document.createElement('li');
+          locationItem.textContent = locationName;
+          locationItem.classList.add('location-item');
+          locationItem.dataset.locationName = locationName;
+          locationItem.dataset.islandName = islandName;
+          locationItem.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const clickedLocationName = event.target.dataset.locationName;
+            const clickedIslandName = event.target.dataset.islandName;
+            
+            const features = map.querySourceFeatures('composite', {
+              sourceLayer: 'BIArchives_Geolocations',
+              filter: [
+                'all',
+                ['==', ['downcase', ['get', 'location']], clickedLocationName.toLowerCase()],
+                ['==', ['downcase', ['get', 'island']], clickedIslandName.toLowerCase()]
+              ]
+            });
+
+            if (features.length > 0) {
+              const feature = features[0];
+              const coordinates = feature.geometry.coordinates;
+              const props = feature.properties;
+              showSidebarAndFlyTo(props, props.location, props.island, coordinates);
+              hideMapMenu();
+            } else {
+              console.warn(`No Mapbox feature found for location: ${clickedLocationName} on island: ${clickedIslandName}. Source: composite, Source-layer: BIArchives_Geolocations`);
+            }
+          });
+          locationList.appendChild(locationItem);
+        });
+        
+        islandItem.appendChild(locationList);
+        islandList.appendChild(islandItem);
+      } else {
+        islandItem.addEventListener('click', () => {
+          showIslandSidebar(islandName, islandsData[islandName].description);
+        });
+        islandList.appendChild(islandItem);
+      }
     });
   }
 
   map.on('load', async () => {
     allEntries = await fetchAllEntries();
-    const { islandCounts, locationCounts } = groupEntries(allEntries);
+    // Correctly assign the returned counts to the global variables
+    const counts = groupEntries(allEntries);
+    islandCounts = counts.islandCounts;
+    locationCounts = counts.locationCounts;
+    
+    populateMapMenu();
 
     const hoverPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
     let hoveredFeatureId = null;
@@ -320,21 +511,18 @@
         const feature = e.features[0];
         const featureId = feature.id;
 
-        // Check if we are hovering over a new feature
         if (featureId !== hoveredFeatureId) {
           hoveredFeatureId = featureId;
 
           const coordinates = feature.geometry.coordinates.slice();
           const locationName = feature.properties.location || "Unnamed Location";
 
-          // Ensure the popup is properly repositioned and its content is updated
           hoverPopup
             .setLngLat(coordinates)
             .setHTML(`<strong>${locationName}</strong>`)
             .addTo(map);
         }
       } else {
-        // If the mouse is on the layer but not over a feature (e.g. in a gap), remove the popup
         if (hoveredFeatureId !== null) {
           hoveredFeatureId = null;
           hoverPopup.remove();
@@ -349,53 +537,22 @@
 
     map.on('click', 'bay-island-islands-fill', (e) => {
       const props = e.features[0].properties;
-      const island = props.island?.toLowerCase().trim();
-      const stats = islandCounts[island] || { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
-
-      document.getElementById('sidebar-title').textContent = props.island || "";
-      document.getElementById('sidebar-subtitle').textContent = "";
-      document.getElementById('sidebar-description').textContent = props.description || "";
-
-      document.getElementById('archive-buttons').innerHTML = `
-        <button id="btn-all" data-filter-type="all">View All (${stats.total})</button>
-        <button id="btn-albums" data-filter-type="albums">Albums (${stats.albums})</button>
-        <button id="btn-photos" data-filter-type="photos">Photos (${stats.photos})</button>
-        <button id="btn-videos" data-filter-type="videos">Videos (${stats.videos})</button>
-        <button id="btn-audio" data-filter-type="audio">Audio (${stats.audio})</button>
-        <button id="btn-text" data-filter-type="text">Text (${stats.text})</button>
-      `;
-      document.getElementById('sidebar').classList.remove('hidden');
-      attachButtonListeners(island, 'island');
+      const island = props.island || "";
+      showIslandSidebar(island, props.description);
     });
 
     map.on('click', 'biarchives-geolocations', (e) => {
       const props = e.features[0].properties;
       const coordinates = e.features[0].geometry.coordinates.slice();
-      const location = props.location?.toLowerCase().trim();
-      const stats = locationCounts[location] || { total: 0, albums: 0, photos: 0, videos: 0, audio: 0, text: 0 };
+      showSidebarAndFlyTo(props, props.location, props.island, coordinates);
+      hideMapMenu();
+    });
 
-      map.flyTo({
-        center: coordinates,
-        zoom: 12, // You can adjust this zoom level as needed
-        speed: 1, // Adjust the speed of the animation
-        curve: 1, // Adjust the animation curve
-        essential: true // This ensures the animation doesn't get interrupted
-      });
-
-      document.getElementById('sidebar-title').textContent = props.location || "Untitled Location";
-      document.getElementById('sidebar-subtitle').textContent = props.island || "";
-      document.getElementById('sidebar-description').textContent = props.description || "";
-
-      document.getElementById('archive-buttons').innerHTML = `
-        <button id="btn-all" data-filter-type="all">View All (${stats.total})</button>
-        <button id="btn-albums" data-filter-type="albums">Albums (${stats.albums})</button>
-        <button id="btn-photos" data-filter-type="photos">Photos (${stats.photos})</button>
-        <button id="btn-videos" data-filter-type="videos">Videos (${stats.videos})</button>
-        <button id="btn-audio" data-filter-type="audio">Audio (${stats.audio})</button>
-        <button id="btn-text" data-filter-type="text">Text (${stats.text})</button>
-      `;
-      document.getElementById('sidebar').classList.remove('hidden');
-      attachButtonListeners(location, 'location');
+    document.getElementById('menu-toggle-button').addEventListener('click', () => {
+      const menuContent = document.getElementById('menu-content');
+      const isExpanded = menuContent.classList.toggle('expanded');
+      document.getElementById('menu-toggle-button').setAttribute('aria-expanded', isExpanded);
+      menuContent.setAttribute('aria-hidden', !isExpanded);
     });
 
     document.getElementById('back-button').addEventListener('click', () => {
@@ -406,11 +563,14 @@
         curve: 1,
         essential: true
       });
-      document.getElementById('sidebar').classList.add('hidden');
+      document.getElementById('sidebar').classList.add('hidden')
+      document.getElementById('sidebar').setAttribute('aria-hidden', 'true');
       document.getElementById('archive-previews').innerHTML = '';
       const overlay = document.getElementById('archive-overlay');
       overlay.classList.add('hidden');
       overlay.style.display = '';
+      overlay.setAttribute('aria-hidden', 'true');
+      showMapMenu();
     });
   });
 </script>

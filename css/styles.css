@@ -176,6 +176,82 @@ a:visited {
   border-top-color: #9C321F !important;
 }
 
+#map-menu {
+  position: absolute;
+  bottom: 500px;
+  right: 20px;
+  z-index: 100;
+  transition: transform 0.3s ease-in-out;
+  background-color: #3E6A41;
+  border-radius: 5px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  max-width: 250px;
+  border: 2px solid #1E1E1E;
+  min-height: auto;
+}
+
+#map-menu.hidden-menu {
+  transform: translateX(120%);
+}
+
+#menu-toggle-button {
+  width: 100%;
+  font-size: 20px;
+  padding: 8px 12px;
+  border: 2px solid #1e1e1e;
+  background-color: #f7f7f7;
+  box-shadow: 2px #3E6A41 inset;
+  color: #1e1e1e;
+  cursor: pointer;
+  border-radius: 25px;
+  text-align: left;
+  font-family: "Odibee Sans";
+  text-transform: uppercase;
+}
+
+#menu-content {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease-out;
+}
+
+#menu-content.expanded {
+  max-height: 500px; /* Adjust as needed for the height of your list */
+}
+
+.island-list{
+  margin: 10px 0;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: #f7f7f7;
+  border: 2px solid #1E1E1E;
+  border-radius: 25px;
+}
+.island-list li,
+.location-list li {
+  list-style-type: none;
+  margin-top: 10px;
+  color: #1e1e1e;
+   padding: 5px;
+}
+.location-item:hover {
+  color: #1A5A8C !important;
+}
+.island-list li {
+  padding: 8px 0;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.location-list li {
+  font-weight: normal;
+  padding: 5px;
+  cursor: pointer;
+}
+
 #sidebar {
   position: absolute;
   top: 0;
@@ -350,6 +426,13 @@ a:visited {
 
 }
 
+.archive-card a {
+  display: flex;
+  justify-content: center; /* Centers child horizontally */
+  align-items: center;    /* Centers child vertically */
+  height: 180px;          /* Matches the max-height of your regular images */
+}
+
 /* Make images smaller */
 .archive-card img {
   width: 100%;
@@ -358,6 +441,16 @@ a:visited {
   max-height: 180px;
   object-fit: cover;
   margin-bottom: 0.75rem;
+}
+
+.archive-card .icon-thumbnail {
+  max-width: 150px;
+  max-height: 150px;
+  display: block;
+  margin: auto;
+  object-fit: contain;
+  background-color: #f7f7f7;
+  padding: 20px;
 }
 
 /* Text inside the card */

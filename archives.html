@@ -59,7 +59,7 @@
               <button data-filter-type="type" data-value="image">
                 <img src="icons/image-icon.svg" alt="Image Icon"> Image
               </button>
-              <button data-filter-type="type" data-value="document">
+              <button data-filter-type="type" data-value="documents">
                 <img src="icons/document-icon.svg" alt="Document Icon"> Document
               </button>
               <button data-filter-type="type" data-value="video">
@@ -88,11 +88,19 @@
 </body>
 
 <script>
-  // Load the header
+ // Load the header
   fetch('base/header.html')
     .then(response => response.text())
     .then(data => {
       document.getElementById('header-placeholder').innerHTML = data;
+
+      // This is where you add the code to set the active link
+      const currentPage = window.location.pathname.split('/').pop().replace('.html', '');
+      const activeLink = document.querySelector(`[data-page="${currentPage}"]`);
+      
+      if (activeLink) {
+        activeLink.classList.add('active');
+      }
     });
 
   // Load the footer
@@ -101,7 +109,6 @@
     .then(data => {
       document.getElementById('footer-placeholder').innerHTML = data;
     });
-
   const spaceId = 'yp5hut9gr3i4';
   const accessToken = '6cmQ6BIqhbITci25VJRJxasRNDvkKb_74mYDBAKfPdY';
   const contentTypes = ['archivePage', 'singleEntry'];
@@ -111,38 +118,42 @@
     type: new Set()
   };
 
+  // Corrected function to accept allRelatedEntries
   function resolveLocationAndIsland(item, allRelatedEntries) {
     let locationsData = [];
     const locationRefs = item.fields.location;
-
-    // Handle both single and multiple references
     const locationsArray = Array.isArray(locationRefs) ? locationRefs : (locationRefs ? [locationRefs] : []);
 
     locationsArray.forEach(locationRef => {
       const locationEntry = allRelatedEntries.find(e => e.sys.id === locationRef.sys.id);
       if (locationEntry?.fields) {
-        let locationName = 'Unknown location';
-        let islandName = 'Unknown island';
-        let safeIslandText = 'unknown';
+        const contentTypeId = locationEntry.sys.contentType.sys.id;
+        let locationName = 'Unknown Location';
+        let islandName = 'Unknown Island';
 
-        const islandRef = locationEntry.fields.island;
-        if (islandRef?.sys?.id) {
-          const islandEntry = allRelatedEntries.find(e => e.sys.id === islandRef.sys.id);
-          islandName = islandEntry?.fields?.island || 'Unknown island';
-          safeIslandText = islandName.toLowerCase();
+        if (contentTypeId === 'geolocation') {
+          const islandRef = locationEntry.fields.island;
+          if (islandRef?.sys?.id) {
+            const islandEntry = allRelatedEntries.find(e => e.sys.id === islandRef.sys.id);
+            islandName = islandEntry?.fields?.island || 'Unknown Island';
+          }
+          // Corrected line: Use the 'geolocation' field name
+          if (locationEntry.fields.geolocation) {
+            locationName = locationEntry.fields.geolocation;
+          } else {
+            locationName = islandName;
+          }
+          locationsData.push({ locationName, islandName });
+        } else if (contentTypeId === 'island') {
+          islandName = locationEntry.fields.island || 'Unknown Island';
+          locationsData.push({ locationName: islandName, islandName: islandName });
         }
-
-        // Prioritize geolocation, then fall back to islandName
-        if (locationEntry.fields.geolocation) {
-          locationName = locationEntry.fields.geolocation;
-        } else if (islandName !== 'Unknown island') {
-          locationName = islandName;
-        }
-
-        locationsData.push({ locationName, islandName, safeIslandText });
       }
     });
 
+    if (locationsData.length === 0) {
+      locationsData.push({ locationName: 'Unknown Location', islandName: '' });
+    }
     return locationsData;
   }
 
@@ -185,8 +196,14 @@
         const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown year';
 
         const locationsData = resolveLocationAndIsland(item, allRelatedEntries);
-        const locationText = locationsData.map(loc => loc.locationName).join(', ');
-        const locationTags = locationsData.map(loc => loc.safeIslandText).join(',');
+        const formattedLocations = locationsData.map(loc => {
+          if (loc.locationName !== loc.islandName && loc.locationName !== 'Unknown Location') {
+            return `${loc.locationName}, ${loc.islandName}`;
+          }
+          return loc.locationName;
+        }).join(' & ');
+
+        const locationTags = locationsData.map(loc => loc.locationName).join(',');
 
         function extractYouTubeVideoId(url) {
           const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
@@ -197,8 +214,9 @@
         let imageUrl = null;
         let imageAlt = `${title} - No Image`;
         let itemType = 'unknown';
+        let thumbnailClass = ''
 
-        // NEW FILTER LOGIC:
+        // ARCHIVE PAGE: always use thumbnailImage
         if (contentTypeId === 'archivePage') {
           itemType = 'album';
           const thumbAsset = fields.thumbnailImage?.sys?.id ? assetsMap[fields.thumbnailImage.sys.id] : null;
@@ -206,26 +224,41 @@
             imageUrl = thumbAsset.url;
             imageAlt = thumbAsset.description || title;
           }
+          // SINGLE ENTRY: check for multiple thumbnail sources in a specific order
         } else if (contentTypeId === 'singleEntry') {
           const mediaAsset = fields.media?.sys?.id ? assetsMap[fields.media.sys.id] : null;
+
           if (mediaAsset) {
-            if (mediaAsset.contentType.startsWith('video')) {
-              itemType = 'videos';
-            } else if (mediaAsset.contentType.startsWith('audio')) {
-              itemType = 'audio';
-            } else if (mediaAsset.contentType.includes('document')) {
-              itemType = 'documents';
-            } else if (mediaAsset.contentType.startsWith('image')) {
+            const fileType = mediaAsset.contentType;
+            if (fileType.startsWith('image')) {
+              imageUrl = mediaAsset.url;
+              imageAlt = mediaAsset.description || title;
               itemType = 'image';
+            } else if (fileType.startsWith('video')) {
+              imageUrl = 'https://raw.githubusercontent.com/biarchives/archive-website-2/main/icons/video-icon.svg';
+              itemType = 'videos';
+              thumbnailClass = 'icon-thumbnail';
+            } else if (fileType.startsWith('audio')) {
+              imageUrl = 'icons/audio-icon.svg';
+              itemType = 'audio';
+              thumbnailClass = 'icon-thumbnail';
+            } else if (fileType.includes('pdf') || fileType.includes('document')) {
+              const thumbAsset = fields.thumbnailImage?.sys?.id ? assetsMap[fields.thumbnailImage.sys.id] : null;
+              if (thumbAsset) {
+                imageUrl = thumbAsset.url;
+                imageAlt = thumbAsset.description || title;
+              } else {
+                imageUrl = 'icons/document-icon.svg';
+                thumbnailClass = 'icon-thumbnail';
+              }
+              itemType = 'documents';
             }
-            imageUrl = mediaAsset.url;
-            imageAlt = mediaAsset.description || title;
           } else if (fields.videoEmbedUrl) {
-            itemType = 'video';
             const videoId = extractYouTubeVideoId(fields.videoEmbedUrl);
             if (videoId) {
               imageUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
               imageAlt = `YouTube Video: ${title}`;
+              itemType = 'video';
             }
           }
         }
@@ -239,7 +272,7 @@
 
         let imageHtml = '';
         if (imageUrl) {
-          imageHtml = `<img src="${imageUrl}" alt="${imageAlt}">`;
+          imageHtml = `<img src="${imageUrl}" alt="${imageAlt}" class="${thumbnailClass}">`;
         }
 
         div.innerHTML = `
@@ -247,7 +280,7 @@
             ${imageHtml}
             <div class="item-text">
               <strong>${title}</strong><br />
-              ${locationText}<br/>
+              ${formattedLocations}<br/>
               ${date}
             </div>
           </a>
@@ -255,7 +288,6 @@
 
         grid.appendChild(div);
       });
-
       // FILTER HANDLERS
       function applyFilters() {
         const items = document.querySelectorAll('.archive-item');
@@ -272,7 +304,6 @@
           const value = button.dataset.value.toLowerCase();
           if (!activeFilters[type]) return;
 
-          // Special handling for item types with multiple values
           if (type === 'type') {
             const hasActiveType = Array.from(activeFilters.type).includes(value);
             if (hasActiveType) {
@@ -288,7 +319,6 @@
               button.classList.add('active-filter');
             }
           } else {
-            // Regular toggle for other filters
             if (activeFilters[type].has(value)) {
               activeFilters[type].delete(value);
               button.classList.remove('active-filter');
@@ -347,8 +377,6 @@
           button.classList.remove('active-filter');
         });
       }
-      // You'll likely need a button to call resetFilters, e.g.:
-      // document.getElementById('reset-filters-button').addEventListener('click', resetFilters);
     })
     .catch(error => {
       console.error('Contentful error:', error);

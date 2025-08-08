@@ -75,7 +75,7 @@
       document.getElementById('entry-title').textContent = fields.title || 'Untitled';
       const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown Year';
       // A reusable function to resolve locations
-      function resolveLocationAndIsland(entry) {
+     function resolveLocationAndIsland(entry) {
         let locationsData = [];
         const locationRefs = entry.fields.location;
         const locationsArray = Array.isArray(locationRefs) ? locationRefs : (locationRefs ? [locationRefs] : []);
@@ -83,22 +83,30 @@
         locationsArray.forEach(locationRef => {
           const locationEntry = relatedEntriesMap[locationRef.sys.id];
           if (locationEntry?.fields) {
+            const contentTypeId = locationEntry.sys.contentType.sys.id;
             let locationName = 'Unknown Location';
             let islandName = 'Unknown Island';
 
-            const islandRef = locationEntry.fields.island;
-            if (islandRef?.sys?.id) {
-              const islandEntry = relatedEntriesMap[islandRef.sys.id];
-              islandName = islandEntry?.fields?.island || 'Unknown Island';
-            }
+            // Check if the reference is a Geolocation entry
+            if (contentTypeId === 'geolocation') {
+              const islandRef = locationEntry.fields.island;
+              if (islandRef?.sys?.id) {
+                const islandEntry = relatedEntriesMap[islandRef.sys.id];
+                islandName = islandEntry?.fields?.island || 'Unknown Island';
+              }
+              // Prioritize geolocation title
+              if (locationEntry.fields.geolocation) {
+                locationName = locationEntry.fields.geolocation;
+              } else {
+                locationName = islandName;
+              }
+              locationsData.push({ locationName, islandName });
 
-            if (locationEntry.fields.geolocation) {
-              locationName = locationEntry.fields.geolocation;
-            } else {
-              locationName = islandName;
+              // Check if the reference is an Island entry
+            } else if (contentTypeId === 'island') {
+              islandName = locationEntry.fields.island || 'Unknown Island';
+              locationsData.push({ locationName: islandName, islandName: islandName });
             }
-
-            locationsData.push({ locationName, islandName });
           }
         });
 
@@ -107,16 +115,19 @@
         }
         return locationsData;
       }
-
       const locationsData = resolveLocationAndIsland(entry);
       const formattedLocations = locationsData.map(loc => {
-        if (loc.locationName && loc.islandName && loc.locationName !== loc.islandName) {
+        // If the location is different from the island, show both
+        if (loc.locationName !== loc.islandName && loc.locationName !== 'Unknown Location') {
           return `${loc.locationName}, ${loc.islandName}`;
         }
+        // Otherwise, just show the location name (which will be the island)
         return loc.locationName;
-      }).join('; ');
+      }).join(' & ');
 
       document.getElementById('entry-meta').innerHTML = `${formattedLocations}<br>${date}`;
+
+      
       const descriptionRichText = fields.description?.content;
       if (descriptionRichText) {
         let descriptionText = '';

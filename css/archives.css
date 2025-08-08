@@ -311,7 +311,6 @@ input[type="text"] {
     /* This is the key fix */
     margin: 0 auto;
     padding: 1rem;
-    box-sizing: border-box;
   }
 
   /* Search & Sort Controls */
@@ -344,8 +343,8 @@ input[type="text"] {
   .filters {
     width: 100%;
     border: none;
-    box-sizing: border-box;
     margin: -20px -10px;
+    max-width: none;
   }
 
   .filter-section {

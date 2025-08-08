@@ -597,19 +597,19 @@ a:visited {
     margin-bottom: 1rem;
   }
 
-  .nav-links {
+.nav-links {
     justify-content: center;
     align-items: center;
-    flex-wrap: nowrap;
-    gap: 1rem;
-    white-space: nowrap;
+    flex-wrap: wrap; /* Allows links to wrap to a new line */
+    gap: 0.5rem;
   }
 
   .nav-links a {
     width: auto;
-    font-size: 20px;
-    padding: 5px 20px;
-    margin: 5px
+    font-size: 16px; /* Reduced font size for better fit */
+    padding: 5px 10px; /* Reduced padding for better fit */
+    margin: 5px;
+    flex-shrink: 0;
   }
 
   /* Main */

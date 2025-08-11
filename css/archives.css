@@ -258,6 +258,14 @@ input[type="text"] {
   text-decoration: none;
 }
 
+@media (max-width: 400px) {
+
+  /* Header */
+  .site-header {
+    padding: 1rem;
+    margin-bottom: 10%;
+  }
+}
 
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
@@ -265,6 +273,7 @@ input[type="text"] {
   /* Header */
   .site-header {
     padding: 1rem;
+    margin-bottom: 5%;
   }
 
   .header-content {
@@ -311,6 +320,7 @@ input[type="text"] {
     /* This is the key fix */
     margin: 0 auto;
     padding: 1rem;
+    gap: 20px;
   }
 
   /* Search & Sort Controls */
@@ -335,35 +345,43 @@ input[type="text"] {
   }
 
   .sort-controls select {
-    flex-shrink: 0;
-    width: 100%;
+    flex-shrink: 1;
+    width: auto;
   }
 
   /* Filters */
   .filters {
-    width: 100%;
-    border: none;
-    margin: -20px -10px;
-    max-width: none;
+    width: auto;
   }
 
   .filter-section {
-    overflow: hidden;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: center;
+    border-radius: 5px;
+    width: 100%;
+    margin: auto;
+    box-sizing: border-box;
   }
 
   .filters h2 {
     text-align: left;
-    font-size: 20px;
+    font-size: 24px;
+    text-wrap: nowrap;
   }
 
   .filter-tags {
     display: flex;
+    align-self: center;
     flex-wrap: nowrap;
     overflow-x: scroll;
-    -webkit-overflow-scrolling: touch;
-    white-space: nowrap;
     gap: 0.5rem;
     justify-content: flex-start;
+    border-radius: 5px;
+    width: 100%;
+    margin-bottom: 20px;
   }
 
   .filter-tags button {
@@ -376,6 +394,13 @@ input[type="text"] {
   .filter-tags img {
     max-width: 20px;
     max-height: 20px;
+  }
+
+  #reset-filters-button {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    margin-top: 1rem;
   }
 
   /* Archive Grid */

@@ -3,12 +3,12 @@
 /* Reset */
 @font-face {
   font-family: "OdibeeSans";
-  src: url('../fonts/OdibeeSans-Regular.ttf') format('truetype');
+  src: url('../fonts/Odibee Sans Regular.woff') format('woff');
 }
 
 @font-face {
   font-family: "PTMono";
-  src: url('../fonts/PTMono-Regular.ttf') format('truetype');
+  src: url('../fonts/PT Mono Regular.woff') format('woff');
 }
 
 * {
@@ -214,6 +214,7 @@ a:visited {
   overflow: hidden;
   max-height: 0;
   transition: max-height 0.3s ease-out;
+  font-size: 14px;
 }
 
 #menu-content.expanded {
@@ -232,12 +233,14 @@ a:visited {
   border-radius: 5px;
 }
 
-.island-list li,
 .location-list li {
   list-style-type: none;
-  margin-top: 10px;
   color: #1e1e1e;
-  padding: 5px;
+  background-color: #ccc;
+  border-radius: 5px;
+  margin: 5px 0;
+  padding: 20px;
+  font-size: 14px;
 }
 
 .location-item:hover {
@@ -245,15 +248,13 @@ a:visited {
 }
 
 .island-list li {
-  padding: 8px 0;
+  padding: 2px 5px;
+  font-size: 16px;
   cursor: pointer;
-  font-weight: bold;
 }
 
-.location-list li {
-  font-weight: normal;
-  padding: 5px;
-  cursor: pointer;
+.island-list li:hover {
+  color: #1A5A8C;
 }
 
 #sidebar {
@@ -709,6 +710,7 @@ a:visited {
     position: relative;
   }
 
+
   #archive-overlay.hidden {
     opacity: 0;
     height: 0;
@@ -723,8 +725,18 @@ a:visited {
     margin-bottom: 10px;
   }
 
+  #archive-previews p{
+    margin: auto;
+    margin-bottom: 120px;
+    padding: 20px;
+  }
+
   .archive-card {
     width: 90%;
+  }
+
+  .card-text p {
+    font-family: "PT Mono";
   }
 
   /* Footer */

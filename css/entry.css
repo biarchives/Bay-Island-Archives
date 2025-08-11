@@ -3,7 +3,7 @@
 /* ===== Reset & Base ===== */
 body {
   background-color: #1e1e1e;
-  color: white;
+  color: #f7f7f7;
   margin: 0;
   padding: 0;
 }
@@ -12,8 +12,8 @@ h1,
 h2,
 h3,
 h4 {
-  font-family: 'Odibee Sans', sans-serif;
-  color: white;
+  font-family: "Odibee Sans";
+  color: #f7f7f7;
 }
 
 h1 {
@@ -100,8 +100,8 @@ h1 {
 
 .back-link {
   display: inline-block;
-  text-decoration: underline;
-  color: white;
+  color: #f7f7f7;
+  text-decoration: none;
 }
 
 /* ===== Entry Layout ===== */
@@ -473,7 +473,10 @@ h1 {
   gap: 1rem;
   padding: 1.5rem 0;
 }
-
+.single-media-placeholder {
+  margin: auto;
+  border-radius: 5px;;
+}
 .single-media-file {
   width: 100%;
   max-width: 300px;
@@ -792,6 +795,11 @@ h1 {
   .fullscreen-overlay {
     width: 100vw;
     height: 100vh;
+  }
+  .single-media-file {
+    width: 100%;
+    margin: auto;
+    max-width: none;
   }
 
   /* ==================================================================== */

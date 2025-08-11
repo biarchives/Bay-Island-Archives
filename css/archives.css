@@ -11,7 +11,7 @@ h1,
 h2,
 h3 {
   font-family: "OdibeeSans", sans-serif;
-  color: white;
+  color: #f7f7f7;
   font-size: 30px;
 }
 
@@ -19,27 +19,27 @@ h3 {
 .site-header a {
   font-family: "OdibeeSans", sans-serif;
   text-decoration: none;
-  color: white;
+  color: #f7f7f7;
 }
 
 .header-content {
-  border-bottom: 3px solid white;
+  border-bottom: 3px solid #f7f7f7;
 }
 
 .nav-links a {
-  border: 3px solid white;
+  border: 3px solid #f7f7f7;
 }
 
 .nav-links a:hover {
   background-color: #FFB800;
-  color: #000;
-  box-shadow: 0 0 0 2px black inset;
+  color: #1e1e1e;
+  box-shadow: 0 0 0 2px #1e1e1e inset;
 }
 
 .nav-links .active {
-  color: black;
-  background-color: white;
-  box-shadow: 0 0 0 2px black inset;
+  color: #1e1e1e;
+  background-color: #f7f7f7;
+  box-shadow: 0 0 0 2px #1e1e1e inset;
 }
 
 /* ===== Main Content ===== */
@@ -59,14 +59,14 @@ h3 {
 
 .search-container {
   background-color: #f7f7f7;
-  border: 2px solid black;
+  border: 2px solid #1e1e1e;
   padding: 20px 30px;
   border-radius: 25px;
   gap: 2rem;
-  box-shadow: 0 0 2px black inset;
+  box-shadow: 0 0 2px #1e1e1e inset;
   display: grid;
   grid-template-columns: 1fr 2fr;
-  color: black;
+  color: #1e1e1e;
   overflow: hidden;
   min-width: 1100px;
 }
@@ -90,8 +90,8 @@ h3 {
 }
 
 .sort-controls select {
-  background: white;
-  border: 1px black solid;
+  background: #f7f7f7;
+  border: 1px #1e1e1e solid;
   border-radius: 5px;
   padding: 10px;
   cursor: pointer;
@@ -104,7 +104,7 @@ h3 {
 /* ===== Sidebar Filters ===== */
 .filters {
   flex: 1;
-  border: 1px solid #000;
+  border: 1px solid #1e1e1e;
   border-radius: 5px;
   padding: 1rem;
   max-width: 300px;
@@ -115,23 +115,23 @@ h3 {
 }
 
 .filters button {
-  background: black;
-  border: 2px black solid;
+  background: #1e1e1e;
+  border: 2px #1e1e1e solid;
   border-radius: 25px;
   padding: 10px 20px;
-  box-shadow: 0 0 0 2px white inset;
+  box-shadow: 0 0 0 2px #f7f7f7 inset;
   cursor: pointer;
-  color: white;
+  color: #f7f7f7;
   font-size: 0.9rem;
   font-family: 'PT Mono', monospace;
 }
 
 .filters h2 {
-  color: black;
+  color: #1e1e1e;
 }
 
 input[type="text"] {
-  border: 1px solid black;
+  border: 1px solid #1e1e1e;
   border-radius: 5px;
   width: auto;
   padding: 10px;
@@ -145,11 +145,11 @@ input[type="text"] {
 }
 
 .filter-tags button {
-  background: white;
-  border: 2px black solid;
+  background: #f7f7f7;
+  border: 2px #1e1e1e solid;
   border-radius: 25px;
-  color: black;
-  padding: 0.4rem 0.8rem;
+  color: #1e1e1e;
+
   cursor: pointer;
   font-size: 0.9rem;
   font-family: 'PT Mono', monospace;
@@ -172,14 +172,14 @@ input[type="text"] {
 
 .filter-tags button.active-filter {
   background-color: #9c321f;
-  color: white;
-  box-shadow: 0 0 0 2px white inset;
+  color: #f7f7f7;
+  box-shadow: 0 0 0 2px #f7f7f7 inset;
 }
 
 .filter-tags button:hover {
   background-color: #9c321f;
-  color: white;
-  box-shadow: 0 0 0 2px white inset;
+  color: #f7f7f7;
+  box-shadow: 0 0 0 2px #f7f7f7 inset;
 }
 
 /* ===== Archive Grid ===== */
@@ -194,7 +194,7 @@ input[type="text"] {
 }
 
 .archive-item {
-  border: 1px solid #000;
+  border: 1px solid #1e1e1e;
   padding: 0.5rem;
   border-radius: 5px;
   min-width: 200px;
@@ -237,24 +237,24 @@ input[type="text"] {
 .item-text {
   margin-top: 0.5rem;
   font-size: 12px;
-  color: black;
+  color: #1e1e1e;
   text-decoration: none;
   padding: 5px;
 }
 
 /* ===== Footer ===== */
 .site-footer {
-  background-color: white;
-  color: black;
+  background-color: #f7f7f7;
+  color: #1e1e1e;
 }
 
 .footer-left p {
   font-size: 15px;
-  color: black;
+  color: #1e1e1e;
 }
 
 .footer-links a {
-  color: black;
+  color: #1e1e1e;
   text-decoration: none;
 }
 

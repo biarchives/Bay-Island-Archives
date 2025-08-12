@@ -3,12 +3,12 @@
 /* Reset */
 @font-face {
   font-family: "OdibeeSans";
-  src: url('../fonts/Odibee Sans Regular.woff') format('woff');
+  src: url('../fonts/Odibee-Sans-Regular.woff') format('woff');
 }
 
 @font-face {
   font-family: "PTMono";
-  src: url('../fonts/PT Mono Regular.woff') format('woff');
+  src: url('../fonts/PT-Mono-Regular.woff') format('woff');
 }
 
 * {

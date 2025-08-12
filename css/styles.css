@@ -168,7 +168,7 @@ a:visited {
 
 .mapboxgl-popup-content {
   background-color: #f7f7f7;
-  font-family: PT Mono;
+  font-family: "PTMono";
   padding: 5px 10px !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
   border: 2px solid #9C321F;
@@ -199,7 +199,7 @@ a:visited {
 }
 
 #map-menu button {
-  font-family: "Odibee Sans" !important;
+  font-family: "OdibeeSans" !important;
 }
 
 #menu-toggle-button {
@@ -213,7 +213,7 @@ a:visited {
   cursor: pointer;
   border-radius: 5px;
   text-align: left;
-  font-family: "Odibee Sans" !important;
+  font-family: "OdibeeSans" !important;
   text-transform: uppercase;
 }
 
@@ -476,7 +476,7 @@ color: #FFB800;
 
 .archive-card p {
   font-size: 14px;
-  font-family: "PT Mono";
+  font-family: "PTMono";
 }
 
 .archive-card:visited {
@@ -752,7 +752,7 @@ color: #FFB800;
   }
 
   .card-text p {
-    font-family: "PT Mono";
+    font-family: "PTMono";
   }
 
   /* Footer */

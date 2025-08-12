@@ -138,12 +138,28 @@ form button[type="submit"]:hover {
   box-shadow: 0 0 0 2px #1a5a8c inset;
 }
 
+.confirmation-message {
+  display: none;
+  text-align: center;
+  padding: 3rem;
+  background-color: #f7f7f7;
+  border: 2px solid #1e1e1e;
+  border-radius: 25px;
+  color: #1e1e1e;
+  box-shadow: 0 0 2px #1e1e1e inset;
+}
+
+.confirmation-message h2 {
+  color: #1e1e1e;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .site-main {
     padding: 1rem;
   }
-  .intro-text{
+
+  .intro-text {
     font-size: 1rem;
     margin: auto;
     width: 90%;

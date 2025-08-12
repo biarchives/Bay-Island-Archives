@@ -58,7 +58,7 @@
             </select>
 
             <label for="upload">Upload File</label>
-            <input type="file" id="upload" name="upload">
+            <input type="file" id="upload" name="upload" required>
 
             <label for="record-name">Record Name</label>
             <input type="text" id="record-name" name="record-name">
@@ -148,13 +148,17 @@
           }
         });
 
+        // The key change: check if the response is OK (2xx status code)
         if (response.ok) {
           panel.style.display = 'none'; // Hide the entire panel
           confirmationMessage.style.display = 'block'; // Show the confirmation message
         } else {
-          alert('Oops! There was an error sending your submission. Please try again.');
+          // Handle HTTP errors (4xx or 5xx status codes)
+          const errorData = await response.json();
+          alert(`Oops! There was an error: ${errorData.error || 'Server error'}. Please check your form and try again.`);
         }
       } catch (error) {
+        // Handle network errors (e.g., no internet connection)
         alert('An error occurred. Please check your network connection and try again.');
       }
     }

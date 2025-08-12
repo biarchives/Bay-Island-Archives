@@ -147,6 +147,7 @@ form button[type="submit"]:hover {
   border-radius: 25px;
   color: #1e1e1e;
   box-shadow: 0 0 2px #1e1e1e inset;
+  margin: 10vh 0;
 }
 
 .confirmation-message h2 {

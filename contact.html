@@ -111,8 +111,15 @@
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabPanels = document.querySelectorAll('.tab-panel');
 
+    const confirmationContact = document.getElementById('confirmation-contact');
+    const confirmationSubmit = document.getElementById('confirmation-submit');
+
     tabButtons.forEach(button => {
       button.addEventListener('click', () => {
+        // Hide all confirmation messages when a new tab is selected
+        confirmationContact.style.display = 'none';
+        confirmationSubmit.style.display = 'none';
+
         tabButtons.forEach(b => b.classList.remove('active'));
         tabPanels.forEach(p => p.classList.remove('active'));
 
@@ -126,8 +133,6 @@
     const submitPanel = document.getElementById('submit');
     const contactForm = document.getElementById('contact-form');
     const submitForm = document.getElementById('submit-form');
-    const confirmationContact = document.getElementById('confirmation-contact');
-    const confirmationSubmit = document.getElementById('confirmation-submit');
 
     async function handleFormSubmission(event, form, panel, confirmationMessage) {
       event.preventDefault(); // Stop the default page reload
@@ -143,7 +148,7 @@
           }
         });
 
-        // The key change: check if the response is OK (2xx status code)
+        // Check if the response is OK (2xx status code)
         if (response.ok) {
           panel.style.display = 'none'; // Hide the entire panel
           confirmationMessage.style.display = 'block'; // Show the confirmation message

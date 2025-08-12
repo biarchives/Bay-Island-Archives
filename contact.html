@@ -107,6 +107,10 @@
         document.getElementById('footer-placeholder').innerHTML = data;
       });
 
+    // --- Form Submission State ---
+    let contactSubmitted = false;
+    let submitSubmitted = false;
+
     // Add tab logic for .tab-button and .tab-panel
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabPanels = document.querySelectorAll('.tab-panel');
@@ -116,15 +120,30 @@
 
     tabButtons.forEach(button => {
       button.addEventListener('click', () => {
-        // Hide all confirmation messages when a new tab is selected
+        const tabId = button.dataset.tab;
+
+        // First, hide all panels and confirmation messages
+        tabPanels.forEach(p => p.classList.remove('active'));
         confirmationContact.style.display = 'none';
         confirmationSubmit.style.display = 'none';
 
-        tabButtons.forEach(b => b.classList.remove('active'));
-        tabPanels.forEach(p => p.classList.remove('active'));
+        // Now, show the correct content based on the active tab and submission state
+        if (tabId === 'contact' && contactSubmitted) {
+          // If the contact form was submitted, show its confirmation message
+          document.getElementById('contact').classList.add('active');
+          confirmationContact.style.display = 'block';
+        } else if (tabId === 'submit' && submitSubmitted) {
+          // If the submit form was submitted, show its confirmation message
+          document.getElementById('submit').classList.add('active');
+          confirmationSubmit.style.display = 'block';
+        } else {
+          // Otherwise, show the form panel for the selected tab
+          document.getElementById(tabId).classList.add('active');
+        }
 
+        // Update active tab button class
+        tabButtons.forEach(b => b.classList.remove('active'));
         button.classList.add('active');
-        document.getElementById(button.dataset.tab).classList.add('active');
       });
     });
 
@@ -148,17 +167,22 @@
           }
         });
 
-        // Check if the response is OK (2xx status code)
         if (response.ok) {
-          panel.style.display = 'none'; // Hide the entire panel
-          confirmationMessage.style.display = 'block'; // Show the confirmation message
+          // Check which form was submitted and set the state flag
+          if (form.id === 'contact-form') {
+            contactSubmitted = true;
+          } else if (form.id === 'submit-form') {
+            submitSubmitted = true;
+          }
+
+          // Hide the form panel and show the confirmation message
+          panel.style.display = 'none';
+          confirmationMessage.style.display = 'block';
         } else {
-          // Handle HTTP errors (4xx or 5xx status codes)
           const errorData = await response.json();
           alert(`Oops! There was an error: ${errorData.error || 'Server error'}. Please check your form and try again.`);
         }
       } catch (error) {
-        // Handle network errors (e.g., no internet connection)
         alert('An error occurred. Please check your network connection and try again.');
       }
     }

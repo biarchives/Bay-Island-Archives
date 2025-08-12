@@ -29,28 +29,28 @@
         <div id="contact" class="tab-panel active">
           <form id="contact-form" action="https://formspree.io/f/xqalnljv" method="post">
             <label for="name">Name</label>
-            <input type="text" id="name" />
+            <input type="text" id="name" name="name" required />
 
             <label for="email">Email</label>
-            <input type="email" id="email" />
+            <input type="email" id="email" name="_replyto" required />
 
             <label for="message">Message</label>
-            <textarea id="message"></textarea>
+            <textarea id="message" name="message" required></textarea>
 
             <button type="submit">Send</button>
           </form>
         </div>
 
         <div id="submit" class="tab-panel">
-          <form id="submit-form" action="https://formspree.io/f/mdkdbdjj" method="post">
+          <form id="submit-form" action="https://formspree.io/f/mdkdbdjj" method="post" enctype="multipart/form-data">
             <label for="submit-name">Name</label>
-            <input type="text" id="submit-name" />
+            <input type="text" id="submit-name" name="submit-name" required />
 
             <label for="submit-email">Email</label>
-            <input type="email" id="submit-email" />
+            <input type="email" id="submit-email" name="_replyto" required />
 
             <label for="file-type">File Type</label>
-            <select id="file-type">
+            <select id="file-type" name="file-type">
               <option>Image</option>
               <option>Document</option>
               <option>Audio</option>
@@ -58,19 +58,19 @@
             </select>
 
             <label for="upload">Upload File</label>
-            <input type="file" id="upload" />
+            <input type="file" id="upload" name="upload" />
 
             <label for="record-name">Record Name</label>
-            <input type="text" id="record-name" />
+            <input type="text" id="record-name" name="record-name" />
 
             <label for="date">Date</label>
-            <input type="date" id="date" />
+            <input type="date" id="date" name="date" />
 
             <label for="location">Location</label>
-            <input type="text" id="location" />
+            <input type="text" id="location" name="location" />
 
             <label for="description">Description</label>
-            <textarea id="description"></textarea>
+            <textarea id="description" name="description"></textarea>
 
             <button type="submit">Submit</button>
           </form>
@@ -89,85 +89,85 @@
 
   <div id="footer-placeholder"></div>
 
-<script>
-  // Load the header
-  fetch('base/header.html')
-    .then(response => response.text())
-    .then(data => {
-      document.getElementById('header-placeholder').innerHTML = data;
+  <script>
+    // Load the header
+    fetch('base/header.html')
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById('header-placeholder').innerHTML = data;
 
-      // This is where you add the code to set the active link
-      const currentPage = window.location.pathname.split('/').pop().replace('.html', '');
-      const activeLink = document.querySelector(`[data-page="${currentPage}"]`);
+        // This is where you add the code to set the active link
+        const currentPage = window.location.pathname.split('/').pop().replace('.html', '');
+        const activeLink = document.querySelector(`[data-page="${currentPage}"]`);
 
-      if (activeLink) {
-        activeLink.classList.add('active');
-      }
-    });
-
-  // Load the footer
-  fetch('base/footer.html')
-    .then(response => response.text())
-    .then(data => {
-      document.getElementById('footer-placeholder').innerHTML = data;
-    });
-
-  // Add tab logic for .tab-button and .tab-panel
-  const tabButtons = document.querySelectorAll('.tab-button');
-  const tabPanels = document.querySelectorAll('.tab-panel');
-
-  tabButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      tabButtons.forEach(b => b.classList.remove('active'));
-      tabPanels.forEach(p => p.classList.remove('active'));
-
-      button.classList.add('active');
-      document.getElementById(button.dataset.tab).classList.add('active');
-    });
-  });
-
-  // --- Form Submission Logic ---
-  const contactForm = document.getElementById('contact-form');
-  const submitForm = document.getElementById('submit-form');
-  const confirmationContact = document.getElementById('confirmation-contact');
-  const confirmationSubmit = document.getElementById('confirmation-submit');
-
-  async function handleFormSubmission(event, form, confirmationMessage) {
-    event.preventDefault(); // Stop the default page reload
-
-    const formData = new FormData(form);
-
-    try {
-      const response = await fetch(form.action, {
-        method: form.method,
-        body: formData,
-        headers: {
-          'Accept': 'application/json'
+        if (activeLink) {
+          activeLink.classList.add('active');
         }
       });
 
-      if (response.ok) {
-        form.style.display = 'none'; // Hide the form
-        confirmationMessage.style.display = 'block'; // Show the confirmation message
-      } else {
-        // Handle error, e.g., show an alert
-        alert('Oops! There was an error sending your submission. Please try again.');
+    // Load the footer
+    fetch('base/footer.html')
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById('footer-placeholder').innerHTML = data;
+      });
+
+    // Add tab logic for .tab-button and .tab-panel
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        tabButtons.forEach(b => b.classList.remove('active'));
+        tabPanels.forEach(p => p.classList.remove('active'));
+
+        button.classList.add('active');
+        document.getElementById(button.dataset.tab).classList.add('active');
+      });
+    });
+
+    // --- Form Submission Logic ---
+    const contactForm = document.getElementById('contact-form');
+    const submitForm = document.getElementById('submit-form');
+    const confirmationContact = document.getElementById('confirmation-contact');
+    const confirmationSubmit = document.getElementById('confirmation-submit');
+
+    async function handleFormSubmission(event, form, confirmationMessage) {
+      event.preventDefault(); // Stop the default page reload
+
+      const formData = new FormData(form);
+
+      try {
+        const response = await fetch(form.action, {
+          method: form.method,
+          body: formData,
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          form.style.display = 'none'; // Hide the form
+          confirmationMessage.style.display = 'block'; // Show the confirmation message
+        } else {
+          // Handle error, e.g., show an alert
+          alert('Oops! There was an error sending your submission. Please try again.');
+        }
+      } catch (error) {
+        // Handle network errors
+        alert('An error occurred. Please check your network connection and try again.');
       }
-    } catch (error) {
-      // Handle network errors
-      alert('An error occurred. Please check your network connection and try again.');
     }
-  }
 
-  // Event listeners for each form
-  contactForm.addEventListener('submit', (event) => {
-    handleFormSubmission(event, contactForm, confirmationContact);
-  });
+    // Event listeners for each form
+    contactForm.addEventListener('submit', (event) => {
+      handleFormSubmission(event, contactForm, confirmationContact);
+    });
 
-  submitForm.addEventListener('submit', (event) => {
-    handleFormSubmission(event, submitForm, confirmationSubmit);
-  });
-</script>
+    submitForm.addEventListener('submit', (event) => {
+      handleFormSubmission(event, submitForm, confirmationSubmit);
+    });
+  </script>
 </body>
 
 </html>

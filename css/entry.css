@@ -1,6 +1,15 @@
 @import url('styles.css');
 
 /* ===== Reset & Base ===== */
+@font-face {
+  font-family: "OdibeeSans";
+  src: url('../fonts/Odibee-Sans-Regular.woff') format('woff');
+}
+
+@font-face {
+  font-family: "PTMono";
+  src: url('../fonts/PT-Mono-Regular.woff') format('woff');
+}
 body {
   background-color: #1e1e1e;
   color: #f7f7f7;
@@ -14,6 +23,11 @@ h3,
 h4 {
   font-family: "Odibee Sans";
   color: #f7f7f7;
+}
+
+input, button, textarea, select {
+  font-family: inherit;
+  -webkit-appearance: none;
 }
 
 h1 {
@@ -615,6 +629,10 @@ h1 {
   /* Header */
   .site-header {
     padding: 1rem;
+  }
+
+  .site-title {
+    text-wrap: nowrap;
   }
 
   .header-content {

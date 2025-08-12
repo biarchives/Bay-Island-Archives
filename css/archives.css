@@ -284,7 +284,15 @@ input[type="text"] {
   /* Header */
   .site-header {
     padding: 1rem;
-    margin-bottom: calc(5vh + 20px);
+
+  }
+
+  .site-header a {
+   text-wrap: nowrap;
+  }
+
+  .site-title{
+    text-wrap: nowrap;
   }
 
   .header-content {
@@ -307,12 +315,12 @@ input[type="text"] {
 
   /* Main Content */
   .site-main {
-    margin-top: 2rem;
     padding: 0 1rem;
     align-items: center;
     width: 100%;
     box-sizing: border-box;
     overflow-x: hidden;
+    margin: 2rem auto 30px;
   }
 
   .description {

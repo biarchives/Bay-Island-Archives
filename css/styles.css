@@ -41,6 +41,11 @@ h3 {
   font-family: "OdibeeSans";
 }
 
+input, button, textarea, select {
+  font-family: inherit;
+  -webkit-appearance: none;
+}
+
 a:visited {
   color: inherit;
   /* or your preferred color, e.g. #000 */
@@ -78,7 +83,6 @@ a:visited {
 
 .site-title {
   font-size: 50px;
-  font-weight: bold;
   text-decoration: none;
   color: #000;
 }
@@ -93,7 +97,6 @@ a:visited {
   text-decoration: none;
   font-size: 25px;
   color: #000;
-  font-weight: 500;
   background-color: transparent;
   border: 3px solid #1E1E1E;
   border-radius: 25px;
@@ -195,6 +198,10 @@ a:visited {
   transform: translateX(200%);
 }
 
+#map-menu button {
+  font-family: "Odibee Sans" !important;
+}
+
 #menu-toggle-button {
   width: 100%;
   font-size: 20px;
@@ -223,6 +230,7 @@ a:visited {
 }
 
 .island-list {
+  list-style-type: none;
   margin: 10px 0;
   padding: 10px;
   display: flex;
@@ -249,6 +257,7 @@ a:visited {
 
 .island-list li {
   padding: 2px 5px;
+   list-style-type: none;
   font-size: 16px;
   cursor: pointer;
 }
@@ -280,14 +289,12 @@ a:visited {
 /* Title */
 #sidebar-title {
   font-size: 36px;
-  font-weight: 600;
-  color: #FFB800;
+color: #FFB800;
 }
 
 /* Subtitle (island name or secondary info) */
 #sidebar-subtitle {
   font-size: 24px;
-  font-weight: 400;
   color: #F7F7F7;
   margin-bottom: 20px;
   text-transform: uppercase;
@@ -295,7 +302,6 @@ a:visited {
 
 #sidebar h3 {
   font-size: 24px;
-  font-weight: 400;
   color: #F7F7F7;
   margin-bottom: 20px;
 }
@@ -531,7 +537,6 @@ a:visited {
 }
 
 .newsletter-form label {
-  font-weight: 600;
   margin-bottom: 1rem;
 }
 
@@ -544,8 +549,7 @@ a:visited {
 
 .newsletter-form button {
   background-color: #F7F7F7;
-  font-family: "PTMono", monospace;
-  font-weight: 600;
+  font-family: "PTMono";
   color: #1A5A8C;
   padding: 10px 20px;
   border: 2px #1A5A8C solid;
@@ -628,17 +632,18 @@ a:visited {
     min-height: 100vh;
   }
 
-  .main-text h1{
+  .main-text h1 {
     font-size: 28px;
     text-align: center;
     margin-bottom: 1rem;
   }
 
-  #disclaimer{
+  #disclaimer {
     font-size: 16px;
     text-align: center;
     margin: 0 10px 20px 10px;
   }
+
   .main-content {
     width: 100%;
     height: auto;
@@ -736,7 +741,7 @@ a:visited {
     margin-bottom: 10px;
   }
 
-  #no-entries{
+  #no-entries {
     margin: auto;
     margin-bottom: 120px;
     padding: 20px;
@@ -751,9 +756,10 @@ a:visited {
   }
 
   /* Footer */
-  .site-footer{
-    padding: 10px;
+  .site-footer {
+    padding: 20px 10px;;
   }
+
   .footer-content {
     flex-direction: column;
     align-items: center;
@@ -763,17 +769,18 @@ a:visited {
   .footer-left {
     align-items: center;
   }
+
   .footer-left h2 {
     font-size: 32px;
   }
 
-  .newsletter-form{
-     display: flex;
+  .newsletter-form {
+    display: flex;
     flex-direction: column;
     align-items: center;
     max-width: 100%;
   }
-  
+
   .newsletter-form label {
     margin-bottom: 0;
     margin-right: 10px;

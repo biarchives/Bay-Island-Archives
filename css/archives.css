@@ -96,7 +96,7 @@ h3 {
   padding: 10px;
   cursor: pointer;
   font-size: 0.9rem;
-  font-family: 'PT Mono', monospace;
+  font-family: 'PTMono', monospace;
   flex-grow: 1;
   /* Makes selects take up equal width */
 }
@@ -123,7 +123,7 @@ h3 {
   cursor: pointer;
   color: #f7f7f7;
   font-size: 0.9rem;
-  font-family: 'PT Mono', monospace;
+  font-family: 'PTMono', monospace;
 }
 
 .filters h2 {
@@ -152,7 +152,7 @@ input[type="text"] {
 
   cursor: pointer;
   font-size: 0.9rem;
-  font-family: 'PT Mono', monospace;
+  font-family: 'PTMono', monospace;
   display: flex;
   justify-content: center;
   gap: 10px;
@@ -242,6 +242,49 @@ input[type="text"] {
   padding: 5px;
 }
 
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  grid-column: 1 / 3;
+  /* Spans across both columns of the search container */
+}
+
+.pagination-controls .pagination-button {
+  background: #9c321f;
+  color: #f7f7f7;
+  border: 2px solid #1e1e1e;
+  border-radius: 25px;
+  padding: 10px 25px;
+  cursor: pointer;
+  font-family: 'PTMono', monospace;
+  font-size: 0.9rem;
+  box-shadow: 0 0 0 2px #f7f7f7 inset;
+  transition: all 0.2s ease-in-out;
+}
+
+.pagination-controls .pagination-button:hover {
+  background-color: #f7f7f7;
+  color: #1e1e1e;
+  box-shadow: 0 0 0 2px #1e1e1e inset;
+}
+
+.pagination-controls .pagination-button:disabled {
+  background-color: #1e1e1e;
+  color: #f7f7f7;
+  border-color: #a0a0a0;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.pagination-controls .page-info {
+  color: #1e1e1e;
+  font-size: 1rem;
+  font-family: 'PTMono', monospace;
+}
+
 /* ===== Footer ===== */
 .site-footer {
   background-color: #f7f7f7;
@@ -272,13 +315,13 @@ input[type="text"] {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     max-height: none;
     overflow-y: visible;
-    padding: 0;
   }
 
-  .filters{
+  .filters {
     height: fit-content;
   }
 }
+
 @media (max-width: 768px) {
 
   /* Header */
@@ -288,10 +331,10 @@ input[type="text"] {
   }
 
   .site-header a {
-   text-wrap: nowrap;
+    text-wrap: nowrap;
   }
 
-  .site-title{
+  .site-title {
     text-wrap: nowrap;
   }
 
@@ -427,15 +470,51 @@ input[type="text"] {
   .archive-grid {
     grid-template-columns: 1fr;
     max-height: none;
+    margin: auto 0;
     overflow-y: visible;
-    width: 100%;
-    box-sizing: border-box;
+    width: auto;
+    padding: 0;
+  }
+
+  .archive-item img,
+  .placeholder-img,
+  .archive-item .icon-thumbnail {
+    width: 150px;
+    /* Specific width for the image */
+    height: 150px;
+    object-fit: cover;
+    padding: 0;
+  }
+
+  .archive-item .icon-thumbnail {
+    object-fit: contain;
+    padding: 20px;
+  }
+
+  .archive-item a {
+    display: flex;
+    flex-direction: row;
+    /* Aligns content in a row */
+    gap: 1rem;
+    align-items: center;
+    /* Vertically centers content */
   }
 
   .archive-item {
-    max-width: 100%;
-    padding: 1rem;
+    min-width: unset;
+    max-height: unset;
+    text-decoration: none;
     box-sizing: border-box;
+    display: flex;
+    /* Make the item a flex container */
+    padding: 1rem;
+  }
+
+  .item-text {
+    flex: 1;
+    /* Takes up the remaining space */
+    margin-top: 0;
+    font-size: 14px;
   }
 
   /* Footer */
@@ -447,5 +526,55 @@ input[type="text"] {
 
   .footer-left {
     align-items: center;
+  }
+}
+
+@media (max-width: 400px) {
+  .search-container {
+    width: auto;
+    padding: 20px 10px;
+  }
+
+  .filter-tags {
+    gap: 0.2rem;
+  }
+
+  .filter-tags button {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .pagination-controls {
+    gap: 0.5rem;
+  }
+
+  .pagination-controls .pagination-button {
+    padding: 8px 15px;
+  }
+
+  .pagination-controls .page-info {
+    font-size: 0.8rem;
+  }
+
+  .archive-item {
+    padding: 1rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+    width: 90%;
+    color: #000;
+    text-decoration: none;
+  }
+
+  .archive-item a {
+    flex-direction: column;
+    /* Stacks image and text vertically */
+    text-align: center;
+  }
+
+  .archive-item img {
+    width: 100%;
+    height: auto;
+    max-height: 180px;
+    object-fit: cover;
   }
 }

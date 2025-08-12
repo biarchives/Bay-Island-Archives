@@ -13,13 +13,19 @@
 
 <div id="related-links-placeholder"></div>
 
+<div class="fullscreen-overlay" id="fullscreen-overlay">
+  <div class="fullscreen-modal">
+    <button class="fullscreen-close" id="fullscreen-close">×</button>
+    <img src="" alt="Fullscreen Image" id="fullscreen-image" />
+    <p class="fullscreen-caption" id="fullscreen-caption"></p>
+  </div>
+</div>
+
 <script>
   window.addEventListener('load', () => {
     window.scrollTo(0, 0);
   });
 
-  // Ensure spaceId and accessToken are defined, as they are used in the URL.
-  // The code assumes they are globally available.
   const contentfulUrl = `https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&sys.id=${entryId}&include=2`;
 
   fetch(contentfulUrl)
@@ -31,7 +37,6 @@
 
       document.title = `${fields.title || 'Untitled'} | Bay Islands Archives`;
 
-      // Helper function to resolve assets and entries
       const assetsMap = {};
       includes?.Asset?.forEach(asset => {
         if (asset.sys.id && asset.fields?.file?.url) {
@@ -52,7 +57,6 @@
       document.getElementById('entry-title').textContent = fields.title || 'Untitled';
       const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown Year';
 
-      // A reusable function to resolve locations
       function resolveLocationAndIsland(entry) {
         let locationsData = [];
         const locationRefs = entry.fields.location;
@@ -65,52 +69,53 @@
             let locationName = 'Unknown Location';
             let islandName = 'Unknown Island';
 
-            // Check if the reference is a Geolocation entry
             if (contentTypeId === 'geolocation') {
               const islandRef = locationEntry.fields.island;
               if (islandRef?.sys?.id) {
                 const islandEntry = relatedEntriesMap[islandRef.sys.id];
                 islandName = islandEntry?.fields?.island || 'Unknown Island';
               }
-              // Corrected line: Use the 'geolocation' field name
               if (locationEntry.fields.geolocation) {
                 locationName = locationEntry.fields.geolocation;
               } else {
                 locationName = islandName;
               }
-              locationsData.push({ locationName, islandName });
-
-              // Check if the reference is an Island entry
+              locationsData.push({
+                locationName,
+                islandName
+              });
             } else if (contentTypeId === 'island') {
               islandName = locationEntry.fields.island || 'Unknown Island';
-              locationsData.push({ locationName: islandName, islandName: islandName });
+              locationsData.push({
+                locationName: islandName,
+                islandName: islandName
+              });
             }
           }
         });
 
         if (locationsData.length === 0) {
-          locationsData.push({ locationName: 'Unknown Location', islandName: '' });
+          locationsData.push({
+            locationName: 'Unknown Location',
+            islandName: ''
+          });
         }
         return locationsData;
       }
 
       const locationsData = resolveLocationAndIsland(entry);
       const formattedLocations = locationsData.map(loc => {
-        // Only return "Geolocation, Island" if the two are different
         if (loc.locationName !== loc.islandName && loc.locationName !== 'Unknown Location') {
           return `${loc.locationName}, ${loc.islandName}`;
         }
-        // Otherwise, just return the location (which will be the island name)
         return loc.locationName;
       }).join(' & ');
 
       document.getElementById('entry-meta').innerHTML = `${formattedLocations}<br>${date}`;
-      
       if (fields.description?.content?.[0]?.content?.[0]?.value) {
         document.getElementById('entry-description').textContent = fields.description.content[0].content[0].value;
       }
 
-      // Helper function for YouTube ID extraction
       function extractYouTubeVideoId(url) {
         if (!url) return null;
         const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
@@ -118,9 +123,11 @@
         return (match && match[1]) ? match[1] : null;
       }
 
-      // Single Media Handling
       const mediaPlaceholder = document.getElementById('single-media-placeholder');
-      let mediaHtml = `<img src="https://placehold.co/600x400?text=No+Media" alt="No media available" />`;
+      let mediaHtml = '';
+      let mediaAssetUrl = '';
+      let mediaAssetDescription = '';
+      let isImage = false;
 
       const mediaField = entry.fields.media;
       const videoEmbedUrl = fields.videoEmbedUrl;
@@ -129,47 +136,72 @@
         const mediaAsset = assetsMap[mediaField.sys.id];
 
         if (mediaAsset) {
-          const url = mediaAsset.url;
+          mediaAssetUrl = mediaAsset.url;
+          mediaAssetDescription = mediaAsset.description || '';
           const type = mediaAsset.contentType;
 
           if (type.startsWith('image/')) {
-            mediaHtml = `<img src="${url}" alt="${mediaAsset.description || 'Media file'}" class="single-media-file" />`;
+            isImage = true;
+            mediaHtml = `<img src="${mediaAssetUrl}" alt="${mediaAssetDescription}" class="single-media-file" id="single-image-to-fullscreen" />`;
           } else if (type.startsWith('video/')) {
             mediaHtml = `
               <div class="video-wrapper">
                 <video controls class="single-media-file">
-                  <source src="${url}" type="${type}">
+                  <source src="${mediaAssetUrl}" type="${type}">
                   Your browser does not support the video tag.
                 </video>
               </div>`;
           } else if (type.startsWith('audio/')) {
             mediaHtml = `
               <audio controls class="single-media-file">
-                <source src="${url}" type="${type}">
+                <source src="${mediaAssetUrl}" type="${type}">
                 Your browser does not support the audio element.
               </audio>`;
           } else if (type === 'application/pdf') {
             mediaHtml = `
               <div class="pdf-wrapper">
-                <iframe src="${url}#toolbar=0" class="pdf-frame"></iframe>
+                <iframe src="${mediaAssetUrl}#toolbar=0" class="pdf-frame"></iframe>
               </div>`;
           }
         }
       } else if (videoEmbedUrl) {
         const videoId = extractYouTubeVideoId(videoEmbedUrl);
         if (videoId) {
-          // Use the correct YouTube embed URL
           const embedUrl = `https://www.youtube.com/embed/${videoId}`;
           mediaHtml = `<div class="video-wrapper"><iframe src="${embedUrl}" frameborder="0" allowfullscreen></iframe></div>`;
         } else {
-          // Fallback for non-YouTube links
           mediaHtml = `<a href="${videoEmbedUrl}" target="_blank">External Link</a>`;
         }
+      } else {
+        mediaHtml = `<img src="https://placehold.co/600x400?text=No+Media" alt="No media available" />`;
       }
 
       mediaPlaceholder.innerHTML = mediaHtml;
-      // Related Links (you would add similar logic here)
 
+      // --- FULLSCREEN LOGIC for a single image ---
+      if (isImage) {
+        const fullscreenOverlay = document.getElementById('fullscreen-overlay');
+        const fullscreenImage = document.getElementById('fullscreen-image');
+        const fullscreenCaption = document.getElementById('fullscreen-caption');
+        const singleImageElement = document.getElementById('single-image-to-fullscreen');
+
+        if (singleImageElement) {
+          singleImageElement.addEventListener('click', () => {
+            fullscreenImage.src = mediaAssetUrl;
+            fullscreenImage.alt = mediaAssetDescription;
+            fullscreenCaption.textContent = mediaAssetDescription;
+            fullscreenOverlay.classList.add('visible');
+            document.body.style.overflow = 'hidden';
+          });
+        }
+
+        fullscreenOverlay.addEventListener('click', (e) => {
+          if (e.target.id === 'fullscreen-close' || e.target.classList.contains('fullscreen-overlay')) {
+            fullscreenOverlay.classList.remove('visible');
+            document.body.style.overflow = '';
+          }
+        });
+      }
     })
     .catch(err => console.error('Error fetching single entry:', err));
 </script>

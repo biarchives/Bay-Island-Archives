@@ -52,21 +52,21 @@
         <div class="filter-section">
           <h2>Item Type</h2>
           <div class="filter-tags">
-              <button data-filter-type="type" data-value="album">
-                <img src="icons/album-icon.svg" alt="Album Icon"> Album
-              </button>
-              <button data-filter-type="type" data-value="image">
-                <img src="icons/image-icon.svg" alt="Image Icon"> Image
-              </button>
-              <button data-filter-type="type" data-value="documents">
-                <img src="icons/document-icon.svg" alt="Document Icon"> Document
-              </button>
-              <button data-filter-type="type" data-value="video">
-                <img src="icons/video-icon.svg" alt="Video Icon"> Video
-              </button>
-              <button data-filter-type="type" data-value="audio">
-                <img src="icons/audio-icon.svg" alt="Audio Icon"> Audio
-              </button>
+            <button data-filter-type="type" data-value="album">
+              <img src="icons/album-icon.svg" alt="Album Icon"> Album
+            </button>
+            <button data-filter-type="type" data-value="image">
+              <img src="icons/image-icon.svg" alt="Image Icon"> Image
+            </button>
+            <button data-filter-type="type" data-value="documents">
+              <img src="icons/document-icon.svg" alt="Document Icon"> Document
+            </button>
+            <button data-filter-type="type" data-value="video">
+              <img src="icons/video-icon.svg" alt="Video Icon"> Video
+            </button>
+            <button data-filter-type="type" data-value="audio">
+              <img src="icons/audio-icon.svg" alt="Audio Icon"> Audio
+            </button>
           </div>
         </div>
         <button id="reset-filters-button">Reset Filters</button>
@@ -77,6 +77,12 @@
       <section class="archive-grid">
 
       </section>
+
+      <div class="pagination-controls" id="pagination-controls">
+        <button id="prev-page" class="pagination-button" disabled>Previous</button>
+        <span id="page-info" class="page-info">Page 1 of 1</span>
+        <button id="next-page" class="pagination-button">Next</button>
+      </div>
     </div>
     </div>
   </main>
@@ -107,70 +113,217 @@
     .then(data => {
       document.getElementById('footer-placeholder').innerHTML = data;
     });
+
   const spaceId = 'yp5hut9gr3i4';
   const accessToken = '6cmQ6BIqhbITci25VJRJxasRNDvkKb_74mYDBAKfPdY';
   const contentTypes = ['archivePage', 'singleEntry'];
+
+  // --- PAGINATION AND DATA VARIABLES ---
+  // This variable will be set dynamically based on screen size
+  let ITEMS_PER_PAGE;
+  let currentPage = 1;
+  let allItems = []; // Stores all fetched entries
+  let filteredItems = []; // Stores the currently filtered items
+  let allRelatedEntries = [];
+  let assetsMap = {};
 
   const activeFilters = {
     location: new Set(),
     type: new Set()
   };
 
-  // Corrected function to accept allRelatedEntries
-  function resolveLocationAndIsland(item, allRelatedEntries) {
+  // --- SCREEN SIZE DETECTION ---
+  function getItemsPerPage() {
+    if (window.innerWidth < 768) {
+      return 5; // For mobile devices
+    } else {
+      return 9; // For tablets and desktops
+    }
+  }
+
+  // Helper function to extract YouTube video ID from a URL
+  function extractYouTubeVideoId(url) {
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return (match && match[1]) ? match[1] : null;
+  }
+
+  // Corrected function to resolve locations
+  function resolveLocationAndIsland(item) {
     let locationsData = [];
     const locationRefs = item.fields.location;
     const locationsArray = Array.isArray(locationRefs) ? locationRefs : (locationRefs ? [locationRefs] : []);
 
     locationsArray.forEach(locationRef => {
       const locationEntry = allRelatedEntries.find(e => e.sys.id === locationRef.sys.id);
-    if (locationEntry?.fields) {
-      const contentTypeId = locationEntry.sys.contentType.sys.id;
-      let islandName = 'Unknown Island';
+      if (locationEntry?.fields) {
+        const contentTypeId = locationEntry.sys.contentType.sys.id;
+        let islandName = 'Unknown Island';
 
         if (contentTypeId === 'geolocation') {
-        const islandRef = locationEntry.fields.island;
-        if (islandRef?.sys?.id) {
-          const islandEntry = allRelatedEntries.find(e => e.sys.id === islandRef.sys.id);
-          islandName = islandEntry?.fields?.island || 'Unknown Island';
+          const islandRef = locationEntry.fields.island;
+          if (islandRef?.sys?.id) {
+            const islandEntry = allRelatedEntries.find(e => e.sys.id === islandRef.sys.id);
+            islandName = islandEntry?.fields?.island || 'Unknown Island';
+          }
+          locationsData.push({
+            locationName: locationEntry.fields.geolocation,
+            islandName: islandName
+          });
+        } else if (contentTypeId === 'island') {
+          islandName = locationEntry.fields.island || 'Unknown Island';
+          locationsData.push({
+            locationName: islandName,
+            islandName: islandName
+          });
         }
-        // Corrected line: Use the island name for filtering
-        locationsData.push({ locationName: locationEntry.fields.geolocation, islandName: islandName });
-      } else if (contentTypeId === 'island') {
-        islandName = locationEntry.fields.island || 'Unknown Island';
-        locationsData.push({ locationName: islandName, islandName: islandName });
       }
-    }
     });
 
     if (locationsData.length === 0) {
-      locationsData.push({ locationName: 'Unknown Location', islandName: '' });
+      locationsData.push({
+        locationName: 'Unknown Location',
+        islandName: ''
+      });
     }
     return locationsData;
   }
 
+  // --- RENDERING FUNCTIONS ---
+  // Renders a single archive card
+  function createArchiveCard(item) {
+    const fields = item.fields;
+    const contentTypeId = item.sys.contentType.sys.id;
+    const title = fields.title || 'Untitled';
+    const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown year';
+
+    const locationsData = resolveLocationAndIsland(item);
+    const formattedLocations = locationsData.map(loc => {
+      if (loc.locationName !== loc.islandName && loc.locationName !== 'Unknown Location') {
+        return `${loc.locationName}, ${loc.islandName}`;
+      }
+      return loc.locationName;
+    }).join(' & ');
+    const locationTags = locationsData.flatMap(loc => [loc.locationName, loc.islandName]).filter(Boolean).join(',').toLowerCase();
+
+    let imageUrl = null;
+    let imageAlt = `${title} - No Image`;
+    let itemType = 'unknown';
+    let thumbnailClass = '';
+
+    if (contentTypeId === 'archivePage') {
+      itemType = 'album';
+      const thumbAsset = fields.thumbnailImage?.sys?.id ? assetsMap[fields.thumbnailImage.sys.id] : null;
+      if (thumbAsset) {
+        imageUrl = thumbAsset.url;
+        imageAlt = thumbAsset.description || title;
+      }
+    } else if (contentTypeId === 'singleEntry') {
+      const mediaAsset = fields.media?.sys?.id ? assetsMap[fields.media.sys.id] : null;
+      if (mediaAsset) {
+        const fileType = mediaAsset.contentType;
+        if (fileType.startsWith('image')) {
+          imageUrl = mediaAsset.url;
+          imageAlt = mediaAsset.description || title;
+          itemType = 'image';
+        } else if (fileType.startsWith('video')) {
+          imageUrl = 'https://raw.githubusercontent.com/biarchives/archive-website-2/main/icons/video-icon.svg';
+          itemType = 'video';
+          thumbnailClass = 'icon-thumbnail';
+        } else if (fileType.startsWith('audio')) {
+          imageUrl = 'icons/audio-icon.svg';
+          itemType = 'audio';
+          thumbnailClass = 'icon-thumbnail';
+        } else if (fileType.includes('pdf') || fileType.includes('document')) {
+          const thumbAsset = fields.thumbnailImage?.sys?.id ? assetsMap[fields.thumbnailImage.sys.id] : null;
+          if (thumbAsset) {
+            imageUrl = thumbAsset.url;
+            imageAlt = thumbAsset.description || title;
+          } else {
+            imageUrl = 'icons/document-icon.svg';
+            thumbnailClass = 'icon-thumbnail';
+          }
+          itemType = 'documents';
+        }
+      } else if (fields.videoEmbedUrl) {
+        const videoId = extractYouTubeVideoId(fields.videoEmbedUrl);
+        if (videoId) {
+          imageUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+          imageAlt = `YouTube Video: ${title}`;
+          itemType = 'video';
+        }
+      }
+    }
+
+    const div = document.createElement('div');
+    div.className = 'archive-item';
+    div.setAttribute('data-title', title.toLowerCase());
+    div.setAttribute('data-date', date);
+    div.setAttribute('data-location', locationTags);
+    div.setAttribute('data-type', itemType);
+
+    let imageHtml = '';
+    if (imageUrl) {
+      imageHtml = `<img src="${imageUrl}" alt="${imageAlt}" class="${thumbnailClass}">`;
+    }
+
+    div.innerHTML = `
+      <a href="entry.html?id=${item.sys.id}">
+        ${imageHtml}
+        <div class="item-text">
+          <strong>${title}</strong><br />
+          ${formattedLocations}<br/>
+          ${date}
+        </div>
+      </a>
+    `;
+
+    return div;
+  }
+
+  // Renders the current page of items to the grid
+  function renderPage() {
+    const grid = document.querySelector('.archive-grid');
+    grid.innerHTML = '';
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const itemsToRender = filteredItems.slice(startIndex, endIndex);
+
+    itemsToRender.forEach(item => {
+      grid.appendChild(createArchiveCard(item));
+    });
+
+    updatePaginationControls();
+  }
+
+  // Updates the pagination button states and page number text
+  function updatePaginationControls() {
+    const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+    document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages}`;
+    document.getElementById('prev-page').disabled = currentPage === 1;
+    document.getElementById('next-page').disabled = currentPage >= totalPages;
+  }
+
+  // --- MAIN DATA FETCHING ---
   Promise.all(
-    contentTypes.map(type =>
-      fetch(`https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&content_type=${type}&include=2`)
+      contentTypes.map(type =>
+        fetch(`https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&content_type=${type}&include=2`)
         .then(res => res.json())
+      )
     )
-  )
     .then(data => {
       const [archivePageData, singleEntryData] = data;
-      const allItems = [...archivePageData.items, ...singleEntryData.items];
+      allItems = [...archivePageData.items, ...singleEntryData.items];
 
       const allAssets = [
         ...(archivePageData.includes?.Asset || []),
         ...(singleEntryData.includes?.Asset || [])
       ];
-      const allRelatedEntries = [
+      allRelatedEntries = [
         ...(archivePageData.includes?.Entry || []),
         ...(singleEntryData.includes?.Entry || [])
       ];
 
-      const grid = document.querySelector('.archive-grid');
-
-      const assetsMap = {};
       allAssets.forEach(asset => {
         if (asset.sys.id && asset.fields?.file?.url) {
           assetsMap[asset.sys.id] = {
@@ -180,205 +333,140 @@
           };
         }
       });
-
-      allItems.forEach(item => {
-        const fields = item.fields;
-        const contentTypeId = item.sys.contentType.sys.id;
-        const title = fields.title || 'Untitled';
-        const date = fields.date ? new Date(fields.date).getFullYear() : 'Unknown year';
-
-        const locationsData = resolveLocationAndIsland(item, allRelatedEntries);
-        const formattedLocations = locationsData.map(loc => {
-          if (loc.locationName !== loc.islandName && loc.locationName !== 'Unknown Location') {
-            return `${loc.locationName}, ${loc.islandName}`;
-          }
-          return loc.locationName;
-        }).join(' & ');
-
-        const locationTags = locationsData.map(loc => loc.locationName).join(',');
-
-        function extractYouTubeVideoId(url) {
-          const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-          const match = url.match(regex);
-          return (match && match[1]) ? match[1] : null;
-        }
-
-        let imageUrl = null;
-        let imageAlt = `${title} - No Image`;
-        let itemType = 'unknown';
-        let thumbnailClass = ''
-
-        // ARCHIVE PAGE: always use thumbnailImage
-        if (contentTypeId === 'archivePage') {
-          itemType = 'album';
-          const thumbAsset = fields.thumbnailImage?.sys?.id ? assetsMap[fields.thumbnailImage.sys.id] : null;
-          if (thumbAsset) {
-            imageUrl = thumbAsset.url;
-            imageAlt = thumbAsset.description || title;
-          }
-          // SINGLE ENTRY: check for multiple thumbnail sources in a specific order
-        } else if (contentTypeId === 'singleEntry') {
-          const mediaAsset = fields.media?.sys?.id ? assetsMap[fields.media.sys.id] : null;
-
-          if (mediaAsset) {
-            const fileType = mediaAsset.contentType;
-            if (fileType.startsWith('image')) {
-              imageUrl = mediaAsset.url;
-              imageAlt = mediaAsset.description || title;
-              itemType = 'image';
-            } else if (fileType.startsWith('video')) {
-              imageUrl = 'https://raw.githubusercontent.com/biarchives/archive-website-2/main/icons/video-icon.svg';
-              itemType = 'videos';
-              thumbnailClass = 'icon-thumbnail';
-            } else if (fileType.startsWith('audio')) {
-              imageUrl = 'icons/audio-icon.svg';
-              itemType = 'audio';
-              thumbnailClass = 'icon-thumbnail';
-            } else if (fileType.includes('pdf') || fileType.includes('document')) {
-              const thumbAsset = fields.thumbnailImage?.sys?.id ? assetsMap[fields.thumbnailImage.sys.id] : null;
-              if (thumbAsset) {
-                imageUrl = thumbAsset.url;
-                imageAlt = thumbAsset.description || title;
-              } else {
-                imageUrl = 'icons/document-icon.svg';
-                thumbnailClass = 'icon-thumbnail';
-              }
-              itemType = 'documents';
-            }
-          } else if (fields.videoEmbedUrl) {
-            const videoId = extractYouTubeVideoId(fields.videoEmbedUrl);
-            if (videoId) {
-              imageUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-              imageAlt = `YouTube Video: ${title}`;
-              itemType = 'video';
-            }
-          }
-        }
-
-        const div = document.createElement('div');
-        div.className = 'archive-item';
-        div.setAttribute('data-title', title.toLowerCase());
-        div.setAttribute('data-date', date);
-        div.setAttribute('data-location', locationTags);
-        div.setAttribute('data-type', itemType);
-
-        let imageHtml = '';
-        if (imageUrl) {
-          imageHtml = `<img src="${imageUrl}" alt="${imageAlt}" class="${thumbnailClass}">`;
-        }
-
-        div.innerHTML = `
-          <a href="entry.html?id=${item.sys.id}">
-            ${imageHtml}
-            <div class="item-text">
-              <strong>${title}</strong><br />
-              ${formattedLocations}<br/>
-              ${date}
-            </div>
-          </a>
-        `;
-
-        grid.appendChild(div);
-      });
-     // FILTER HANDLERS
-function applyFilters() {
-  const items = document.querySelectorAll('.archive-item');
-  items.forEach(item => {
-    const itemLocations = item.dataset.location.toLowerCase().split(',');
-    const matchesLocation = activeFilters.location.size === 0 || Array.from(activeFilters.location).some(filterValue => itemLocations.includes(filterValue));
-    const matchesType = activeFilters.type.size === 0 || activeFilters.type.has(item.dataset.type);
-    item.style.display = (matchesLocation && matchesType) ? 'block' : 'none';
-  });
-}
-
-document.querySelectorAll('.filter-tags button').forEach(button => {
-  button.addEventListener('click', () => {
-    const type = button.dataset.filterType;
-    // Ensure the value is always lowercase for consistent comparison
-    const value = button.dataset.value.toLowerCase(); 
-    if (!activeFilters[type]) return;
-
-    if (type === 'type') {
-      const hasActiveType = Array.from(activeFilters.type).includes(value);
-      if (hasActiveType) {
-        activeFilters.type.clear();
-      } else {
-        activeFilters.type.clear();
-        activeFilters.type.add(value);
-      }
-      document.querySelectorAll('.filter-tags button[data-filter-type="type"]').forEach(btn => {
-        btn.classList.remove('active-filter');
-      });
-      if (!hasActiveType) {
-        button.classList.add('active-filter');
-      }
-    } else {
-      if (activeFilters[type].has(value)) {
-        activeFilters[type].delete(value);
-        button.classList.remove('active-filter');
-      } else {
-        activeFilters[type].add(value);
-        button.classList.add('active-filter');
-      }
-    }
-    applyFilters();
-  });
-});
-
-      // SORTING
-      function sortItems(by, direction) {
-        const items = Array.from(grid.children);
-        items.sort((a, b) => {
-          const valA = a.dataset[by];
-          const valB = b.dataset[by];
-          if (by === 'date') {
-            return direction === 'asc' ? valA - valB : valB - valA;
-          } else {
-            return direction === 'asc'
-              ? valA.localeCompare(valB)
-              : valB.localeCompare(valA);
-          }
-        });
-        items.forEach(item => grid.appendChild(item));
-      }
-
-      document.getElementById('sort-date').addEventListener('change', e => {
-        if (e.target.value) sortItems('date', e.target.value);
-      });
-      document.getElementById('sort-name').addEventListener('change', e => {
-        if (e.target.value) sortItems('title', e.target.value);
-      });
-
-      // SEARCH
-      const searchInput = document.getElementById('search-input');
-      function performSearch() {
-        const query = searchInput.value.trim().toLowerCase();
-        const items = document.querySelectorAll('.archive-item');
-        items.forEach(item => {
-          const title = item.dataset.title || '';
-          item.style.display = title.includes(query) ? 'block' : 'none';
-        });
-      }
-      searchInput.addEventListener('input', performSearch);
-
-      // RESET FILTERS
-      function resetFilters() {
-        Object.keys(activeFilters).forEach(type => activeFilters[type].clear());
-        document.querySelectorAll('.archive-item').forEach(item => {
-          item.style.display = 'block';
-        });
-        document.querySelectorAll('.filter-tags button').forEach(button => {
-          button.classList.remove('active-filter');
-        });
-      }
-
-      // Add the event listener to the reset button
-      document.getElementById('reset-filters-button').addEventListener('click', resetFilters);
-
+      // Initial render, setting items per page based on current screen size
+      ITEMS_PER_PAGE = getItemsPerPage();
+      filteredItems = [...allItems];
+      renderPage();
     })
     .catch(error => {
       console.error('Contentful error:', error);
+      document.querySelector('.archive-grid').innerHTML = '<p>Failed to load archives. Please try again.</p>';
     });
+
+  // --- FILTER, SORT, AND SEARCH HANDLERS ---
+  function applyFilters() {
+    let tempItems = allItems.filter(item => {
+      const locationsData = resolveLocationAndIsland(item);
+      const itemLocationTags = locationsData.flatMap(loc => [loc.locationName, loc.islandName]).filter(Boolean).map(tag => tag.toLowerCase());
+      const matchesLocation = activeFilters.location.size === 0 || Array.from(activeFilters.location).some(filterValue => itemLocationTags.includes(filterValue));
+
+      let itemType = 'unknown';
+      const contentTypeId = item.sys.contentType.sys.id;
+      if (contentTypeId === 'archivePage') {
+          itemType = 'album';
+      } else if (contentTypeId === 'singleEntry') {
+          if (item.fields.media) {
+              const fileType = assetsMap[item.fields.media.sys.id]?.contentType;
+              if (fileType) {
+                  if (fileType.startsWith('image')) itemType = 'image';
+                  else if (fileType.startsWith('video')) itemType = 'video';
+                  else if (fileType.startsWith('audio')) itemType = 'audio';
+                  else if (fileType.includes('pdf') || fileType.includes('document')) itemType = 'documents';
+              }
+          } else if (item.fields.videoEmbedUrl) {
+              itemType = 'video';
+          }
+      }
+
+      const matchesType = activeFilters.type.size === 0 || activeFilters.type.has(itemType);
+
+      return matchesLocation && matchesType;
+    });
+
+    filteredItems = tempItems;
+    currentPage = 1; // Reset to page 1 after filtering
+    applySorting();
+  }
+
+  function applySorting() {
+    const dateDirection = document.getElementById('sort-date').value;
+    const nameDirection = document.getElementById('sort-name').value;
+    let tempItems = [...filteredItems];
+
+    if (dateDirection) {
+      tempItems.sort((a, b) => {
+        const dateA = a.fields.date ? new Date(a.fields.date) : 0;
+        const dateB = b.fields.date ? new Date(b.fields.date) : 0;
+        return dateDirection === 'asc' ? dateA - dateB : dateB - dateA;
+      });
+    } else if (nameDirection) {
+      tempItems.sort((a, b) => {
+        const titleA = (a.fields.title || '').toLowerCase();
+        const titleB = (b.fields.title || '').toLowerCase();
+        return nameDirection === 'asc' ? titleA.localeCompare(titleB) : titleB.localeCompare(titleA);
+      });
+    }
+    filteredItems = tempItems;
+    currentPage = 1; // Reset to page 1 after sorting
+    renderPage();
+  }
+
+  const searchInput = document.getElementById('search-input');
+  function performSearch() {
+    const query = searchInput.value.trim().toLowerCase();
+    filteredItems = allItems.filter(item => (item.fields.title || '').toLowerCase().includes(query));
+    applySorting();
+  }
+
+  // --- EVENT LISTENERS ---
+  document.querySelectorAll('.filter-tags button').forEach(button => {
+    button.addEventListener('click', () => {
+      const type = button.dataset.filterType;
+      const value = button.dataset.value.toLowerCase();
+      if (!activeFilters[type]) return;
+
+      if (activeFilters[type].has(value)) {
+        activeFilters[type].delete(value);
+      } else {
+        activeFilters[type].add(value);
+      }
+      button.classList.toggle('active-filter');
+      applyFilters();
+    });
+  });
+
+  document.getElementById('sort-date').addEventListener('change', applySorting);
+  document.getElementById('sort-name').addEventListener('change', applySorting);
+  searchInput.addEventListener('input', performSearch);
+  document.getElementById('reset-filters-button').addEventListener('click', () => {
+    Object.keys(activeFilters).forEach(type => activeFilters[type].clear());
+    document.querySelectorAll('.filter-tags button').forEach(button => button.classList.remove('active-filter'));
+    document.getElementById('search-input').value = '';
+    document.getElementById('sort-date').value = '';
+    document.getElementById('sort-name').value = '';
+    filteredItems = [...allItems];
+    currentPage = 1;
+    renderPage();
+  });
+
+  // Pagination button listeners
+  document.getElementById('prev-page').addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      renderPage();
+    }
+  });
+  document.getElementById('next-page').addEventListener('click', () => {
+    const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+    if (currentPage < totalPages) {
+      currentPage++;
+      renderPage();
+    }
+  });
+
+  // This listener will handle screen resizing
+  let resizeTimeout;
+  window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+          const newItemsPerPage = getItemsPerPage();
+          if (newItemsPerPage !== ITEMS_PER_PAGE) {
+              ITEMS_PER_PAGE = newItemsPerPage;
+              currentPage = 1; // Reset to the first page to prevent issues
+              renderPage();
+          }
+      }, 250); // Debounce the resize event for performance
+  });
 </script>
 
 </body>

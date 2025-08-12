@@ -124,29 +124,23 @@
 
     locationsArray.forEach(locationRef => {
       const locationEntry = allRelatedEntries.find(e => e.sys.id === locationRef.sys.id);
-      if (locationEntry?.fields) {
-        const contentTypeId = locationEntry.sys.contentType.sys.id;
-        let locationName = 'Unknown Location';
-        let islandName = 'Unknown Island';
+    if (locationEntry?.fields) {
+      const contentTypeId = locationEntry.sys.contentType.sys.id;
+      let islandName = 'Unknown Island';
 
         if (contentTypeId === 'geolocation') {
-          const islandRef = locationEntry.fields.island;
-          if (islandRef?.sys?.id) {
-            const islandEntry = allRelatedEntries.find(e => e.sys.id === islandRef.sys.id);
-            islandName = islandEntry?.fields?.island || 'Unknown Island';
-          }
-          // Corrected line: Use the 'geolocation' field name
-          if (locationEntry.fields.geolocation) {
-            locationName = locationEntry.fields.geolocation;
-          } else {
-            locationName = islandName;
-          }
-          locationsData.push({ locationName, islandName });
-        } else if (contentTypeId === 'island') {
-          islandName = locationEntry.fields.island || 'Unknown Island';
-          locationsData.push({ locationName: islandName, islandName: islandName });
+        const islandRef = locationEntry.fields.island;
+        if (islandRef?.sys?.id) {
+          const islandEntry = allRelatedEntries.find(e => e.sys.id === islandRef.sys.id);
+          islandName = islandEntry?.fields?.island || 'Unknown Island';
         }
+        // Corrected line: Use the island name for filtering
+        locationsData.push({ locationName: locationEntry.fields.geolocation, islandName: islandName });
+      } else if (contentTypeId === 'island') {
+        islandName = locationEntry.fields.island || 'Unknown Island';
+        locationsData.push({ locationName: islandName, islandName: islandName });
       }
+    }
     });
 
     if (locationsData.length === 0) {
@@ -286,48 +280,50 @@
 
         grid.appendChild(div);
       });
-      // FILTER HANDLERS
-      function applyFilters() {
-        const items = document.querySelectorAll('.archive-item');
-        items.forEach(item => {
-          const matchesLocation = activeFilters.location.size === 0 || Array.from(activeFilters.location).some(location => item.dataset.location.includes(location));
-          const matchesType = activeFilters.type.size === 0 || activeFilters.type.has(item.dataset.type);
-          item.style.display = (matchesLocation && matchesType) ? 'block' : 'none';
-        });
+     // FILTER HANDLERS
+function applyFilters() {
+  const items = document.querySelectorAll('.archive-item');
+  items.forEach(item => {
+    const itemLocations = item.dataset.location.toLowerCase().split(',');
+    const matchesLocation = activeFilters.location.size === 0 || Array.from(activeFilters.location).some(filterValue => itemLocations.includes(filterValue));
+    const matchesType = activeFilters.type.size === 0 || activeFilters.type.has(item.dataset.type);
+    item.style.display = (matchesLocation && matchesType) ? 'block' : 'none';
+  });
+}
+
+document.querySelectorAll('.filter-tags button').forEach(button => {
+  button.addEventListener('click', () => {
+    const type = button.dataset.filterType;
+    // Ensure the value is always lowercase for consistent comparison
+    const value = button.dataset.value.toLowerCase(); 
+    if (!activeFilters[type]) return;
+
+    if (type === 'type') {
+      const hasActiveType = Array.from(activeFilters.type).includes(value);
+      if (hasActiveType) {
+        activeFilters.type.clear();
+      } else {
+        activeFilters.type.clear();
+        activeFilters.type.add(value);
       }
-
-      document.querySelectorAll('.filter-tags button').forEach(button => {
-        button.addEventListener('click', () => {
-          const type = button.dataset.filterType;
-          const value = button.dataset.value.toLowerCase();
-          if (!activeFilters[type]) return;
-
-          if (type === 'type') {
-            const hasActiveType = Array.from(activeFilters.type).includes(value);
-            if (hasActiveType) {
-              activeFilters.type.clear();
-            } else {
-              activeFilters.type.clear();
-              activeFilters.type.add(value);
-            }
-            document.querySelectorAll('.filter-tags button[data-filter-type="type"]').forEach(btn => {
-              btn.classList.remove('active-filter');
-            });
-            if (!hasActiveType) {
-              button.classList.add('active-filter');
-            }
-          } else {
-            if (activeFilters[type].has(value)) {
-              activeFilters[type].delete(value);
-              button.classList.remove('active-filter');
-            } else {
-              activeFilters[type].add(value);
-              button.classList.add('active-filter');
-            }
-          }
-          applyFilters();
-        });
+      document.querySelectorAll('.filter-tags button[data-filter-type="type"]').forEach(btn => {
+        btn.classList.remove('active-filter');
       });
+      if (!hasActiveType) {
+        button.classList.add('active-filter');
+      }
+    } else {
+      if (activeFilters[type].has(value)) {
+        activeFilters[type].delete(value);
+        button.classList.remove('active-filter');
+      } else {
+        activeFilters[type].add(value);
+        button.classList.add('active-filter');
+      }
+    }
+    applyFilters();
+  });
+});
 
       // SORTING
       function sortItems(by, direction) {

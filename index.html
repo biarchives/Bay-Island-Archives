@@ -33,7 +33,7 @@
     <main class="site-main">
       <div class="main-text">
         <h1>Explore the history of the Bay Islands</h1>
-        <p id='disclaimed'>We recognize The Pech people as the indigenous people of the Bay Islands of Honduras. They
+        <p id='disclaimer'>We recognize The Pech people as the indigenous people of the Bay Islands of Honduras. They
           were
           a nomadic tribe, with roots throughout Central America. </p>
       </div>
@@ -302,7 +302,7 @@
     });
 
     if (entries.length === 0) {
-      previewContainer.innerHTML = '<p>No entries found.</p>';
+      previewContainer.innerHTML = '<p id="no-entries">No entries found.</p>';
       return;
     }
   }

@@ -40,33 +40,41 @@
         </p>
       </div>
     </section>
-    <section class="author-section">
-      <h1>About the Author: Zanolee Grant</h1>
+    <section class="credit-section">
+      <h1>Zanolee Grant, Founder</h1>
       <p>
         Zanolee Grant is an independent filmmaker and researcher originally from Roatan, Honduras. She holds an M.A. in
-        Latin American and Caribbean Studies from Florida International University, an MFA in Documentary Filmmaking
-        from the University of Miami, and a B.A. in Political Science and English from Stetson University. Her work
-        centers around advancing community development and preserving the history of the Bay Islands.
+        Latin American and Caribbean Studies and an MFA in Documentary Filmmaking. Her work centers around advancing
+        community development and preserving the history of the Bay Islands.
       </p>
+      <section class="additional-projects">
+        <h2>Projects by Zanolee Grant</h2>
+        <div class="projects-grid">
+          <a href="https://public.flourish.studio/story/3259506/" target="_blank" class="project-card">
+            <img src="images/methodist-marriage-records-thumbnail.png" alt="Project Thumbnail">
+            <p>Bay Islands Marriage Records </p>
+          </a>
+          <a href="https://drive.google.com/file/d/1-vvIYZgdiH-e2IJxG10_wmV9p3jZ7Fxh/view?usp=sharing" target="_blank" class="project-card">
+            <img src="images/bay-islands-oral-history-film-project-thumbnail.png" alt="Project Thumbnail">
+            <p>Bay Islands Oral History Film Project</p>
+          </a>
+      </section>
+      <br>
+      <h1>Dr. Idalia Wilmoth, Collaborator</h1>
+      <p>Idalia T. Wilmoth was born in Chicago and raised in Indiana. She is a proud Afro-Latin Caribbean educator,
+        Black scholar, and three-time alumna of IUPUI. Her family, the Wilmoth's, are originally from Coxen Hole,
+        Roatan. Dr. Wilmoth's work critically examines culture, race, history, and the epistemologies of sites of
+        memory. Her scholarly interests encompass Afro-Latin Studies, Caribbean Studies, Black geography, and Fashion
+        Aesthetics.</p>
+      <section class="additional-projects">
+        <h2>Projects by Dr. Idalia Wilmoth</h2>
+        <div class="projects-grid">
+          <a href="other_files/Wilmoth PDF.pdf" target="_blank" class="project-card">
+            <img src="images/dr-wilmoth-pdf-thumbnail.png" alt="Project Thumbnail">
+            <p>The Importance of Preserving Bay Island Histories as a Second-Generation Descendant</p>
+          </a>
+      </section>
     </section>
-    <section class="projects-section">
-      <h2>Other Projects by the Author</h2>
-      <div class="projects-grid">
-        <a href="https://example.com/project1" target="_blank" class="project-card">
-          <div class="thumbnail-placeholder"></div>
-          <p>Project One Title</p>
-        </a>
-        <a href="https://example.com/project2" target="_blank" class="project-card">
-          <div class="thumbnail-placeholder"></div>
-          <p>Project Two Title</p>
-        </a>
-        <a href="https://example.com/project3" target="_blank" class="project-card">
-          <div class="thumbnail-placeholder"></div>
-          <p>Project Three Title</p>
-        </a>
-      </div>
-    </section>
-
 
   </main>
 
@@ -75,7 +83,7 @@
 </body>
 <script>
 
-// Load the header
+  // Load the header
   fetch('base/header.html')
     .then(response => response.text())
     .then(data => {
@@ -84,7 +92,7 @@
       // This is where you add the code to set the active link
       const currentPage = window.location.pathname.split('/').pop().replace('.html', '');
       const activeLink = document.querySelector(`[data-page="${currentPage}"]`);
-      
+
       if (activeLink) {
         activeLink.classList.add('active');
       }

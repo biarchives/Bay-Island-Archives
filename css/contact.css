@@ -17,8 +17,8 @@
 }
 
 /* Headings */
-h2 {
-  font-size: 2rem;
+h1{
+  font-size: 2.5rem;
   margin-bottom: 1rem;
   color: #1e1e1e;
 }
@@ -87,8 +87,34 @@ h2 {
 }
 
 .tab-panel.active {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  align-items: center;
+  height: auto;
   padding: 1.5rem;
+}
+
+.tab-panel p{
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #1e1e1e; 
+  margin: auto;
+}
+
+.tab-panel a{
+  text-wrap: nowrap;
+  text-decoration: none;
+  background-color: #1A5A8C;
+  border: 2px #1A5A8C solid;
+  box-shadow: 0 0 0 2px #f7f7f7 inset;
+  padding: 10px 20px;
+  border-radius: 25px;
+  margin-top: 20px;
+  display: block;
+  color:#F7F7F7;
+  text-align: center;
 }
 
 /* Forms */
@@ -121,6 +147,12 @@ select {
 textarea {
   height: 120px;
   resize: vertical;
+}
+
+#footer-placeholder {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
 }
 
 form button[type="submit"] {

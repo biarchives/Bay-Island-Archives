@@ -6,6 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bay Islands Archives</title>
   <link rel="stylesheet" href="css/archives.css" />
+
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
+  <link rel="manifest" href="icons/site.webmanifest">
 </head>
 
 <body>
@@ -306,11 +311,11 @@
 
   // --- MAIN DATA FETCHING ---
   Promise.all(
-      contentTypes.map(type =>
-        fetch(`https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&content_type=${type}&include=2`)
+    contentTypes.map(type =>
+      fetch(`https://cdn.contentful.com/spaces/${spaceId}/environments/master/entries?access_token=${accessToken}&content_type=${type}&include=2`)
         .then(res => res.json())
-      )
     )
+  )
     .then(data => {
       const [archivePageData, singleEntryData] = data;
       allItems = [...archivePageData.items, ...singleEntryData.items];
@@ -353,19 +358,19 @@
       let itemType = 'unknown';
       const contentTypeId = item.sys.contentType.sys.id;
       if (contentTypeId === 'archivePage') {
-          itemType = 'album';
+        itemType = 'album';
       } else if (contentTypeId === 'singleEntry') {
-          if (item.fields.media) {
-              const fileType = assetsMap[item.fields.media.sys.id]?.contentType;
-              if (fileType) {
-                  if (fileType.startsWith('image')) itemType = 'image';
-                  else if (fileType.startsWith('video')) itemType = 'video';
-                  else if (fileType.startsWith('audio')) itemType = 'audio';
-                  else if (fileType.includes('pdf') || fileType.includes('document')) itemType = 'documents';
-              }
-          } else if (item.fields.videoEmbedUrl) {
-              itemType = 'video';
+        if (item.fields.media) {
+          const fileType = assetsMap[item.fields.media.sys.id]?.contentType;
+          if (fileType) {
+            if (fileType.startsWith('image')) itemType = 'image';
+            else if (fileType.startsWith('video')) itemType = 'video';
+            else if (fileType.startsWith('audio')) itemType = 'audio';
+            else if (fileType.includes('pdf') || fileType.includes('document')) itemType = 'documents';
           }
+        } else if (item.fields.videoEmbedUrl) {
+          itemType = 'video';
+        }
       }
 
       const matchesType = activeFilters.type.size === 0 || activeFilters.type.has(itemType);
@@ -457,15 +462,15 @@
   // This listener will handle screen resizing
   let resizeTimeout;
   window.addEventListener('resize', () => {
-      clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(() => {
-          const newItemsPerPage = getItemsPerPage();
-          if (newItemsPerPage !== ITEMS_PER_PAGE) {
-              ITEMS_PER_PAGE = newItemsPerPage;
-              currentPage = 1; // Reset to the first page to prevent issues
-              renderPage();
-          }
-      }, 250); // Debounce the resize event for performance
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      const newItemsPerPage = getItemsPerPage();
+      if (newItemsPerPage !== ITEMS_PER_PAGE) {
+        ITEMS_PER_PAGE = newItemsPerPage;
+        currentPage = 1; // Reset to the first page to prevent issues
+        renderPage();
+      }
+    }, 250); // Debounce the resize event for performance
   });
 </script>
 

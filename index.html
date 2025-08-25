@@ -10,9 +10,9 @@
   <link rel="preload" href="fonts/PT-Mono-Regular.woff" as="font" type="font/woff" crossorigin="anonymous">
 
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
-<link rel="manifest" href="icons/site.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
+  <link rel="manifest" href="icons/site.webmanifest">
 
   <!-- Mapbox GL JS CDN -->
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
@@ -298,7 +298,7 @@
 
       cardLink.addEventListener('click', (event) => {
         event.preventDefault();
-       window.open(`entry.html?id=${item.sys.id}`, '_blank');
+        window.open(`entry.html?id=${item.sys.id}`, '_blank');
       });
 
       previewContainer.appendChild(cardLink);
